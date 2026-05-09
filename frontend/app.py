@@ -226,6 +226,15 @@ if "access_token" not in st.session_state:
 if "selected_task_id" not in st.session_state:
     st.session_state.selected_task_id = None
 
+if "confirm_delete_task_id" not in st.session_state:
+    st.session_state.confirm_delete_task_id = None
+
+if "confirm_delete_comment_id" not in st.session_state:
+    st.session_state.confirm_delete_comment_id = None
+
+if "confirm_delete_file_id" not in st.session_state:
+    st.session_state.confirm_delete_file_id = None
+
 
 # =========================
 # AUTH HEADERS
@@ -481,6 +490,7 @@ def delete_comment(comment_id):
     )
 
     if response and response.status_code == 200:
+        st.session_state.confirm_delete_comment_id = None
         st.success("Comment deleted")
         st.rerun()
 
@@ -523,6 +533,7 @@ def delete_file(file_id):
     )
 
     if response and response.status_code == 200:
+        st.session_state.confirm_delete_file_id = None
         st.success("File deleted")
         st.rerun()
 
@@ -557,6 +568,7 @@ def delete_task(task_id):
 
     if response and response.status_code == 200:
         st.session_state.selected_task_id = None
+        st.session_state.confirm_delete_task_id = None
         st.success("Task deleted")
         st.rerun()
 
@@ -926,6 +938,8 @@ def render_comments(task):
 
         if comments:
             for comment in comments:
+                comment_id = comment["id"]
+
                 with st.container(border=True):
                     st.write(comment["comment"])
                     st.caption(
@@ -938,11 +952,35 @@ def render_comments(task):
                     )
 
                     if can_delete:
-                        if st.button(
-                            "🗑️ Delete Comment",
-                            key=f"delete_comment_{comment['id']}",
-                        ):
-                            delete_comment(comment["id"])
+                        if st.session_state.confirm_delete_comment_id == comment_id:
+                            st.warning("Delete this comment?")
+
+                            yes_col, cancel_col = st.columns(2)
+
+                            with yes_col:
+                                if st.button(
+                                    "Yes, delete",
+                                    key=f"confirm_delete_comment_{comment_id}",
+                                    use_container_width=True,
+                                ):
+                                    delete_comment(comment_id)
+
+                            with cancel_col:
+                                if st.button(
+                                    "Cancel",
+                                    key=f"cancel_delete_comment_{comment_id}",
+                                    use_container_width=True,
+                                ):
+                                    st.session_state.confirm_delete_comment_id = None
+                                    st.rerun()
+                        else:
+                            if st.button(
+                                "🗑️ Delete Comment",
+                                key=f"delete_comment_{comment_id}",
+                                use_container_width=True,
+                            ):
+                                st.session_state.confirm_delete_comment_id = comment_id
+                                st.rerun()
         else:
             st.caption("No comments yet.")
 
@@ -969,6 +1007,8 @@ def render_files(task):
 
         if files:
             for file in files:
+                file_id = file["id"]
+
                 with st.container(border=True):
                     st.write(f"📄 {file['filename']}")
                     st.caption(f"Uploaded: {file['uploaded_at']}")
@@ -979,11 +1019,35 @@ def render_files(task):
                     )
 
                     if can_delete:
-                        if st.button(
-                            "🗑️ Delete File",
-                            key=f"delete_file_{file['id']}",
-                        ):
-                            delete_file(file["id"])
+                        if st.session_state.confirm_delete_file_id == file_id:
+                            st.warning("Delete this file record?")
+
+                            yes_col, cancel_col = st.columns(2)
+
+                            with yes_col:
+                                if st.button(
+                                    "Yes, delete",
+                                    key=f"confirm_delete_file_{file_id}",
+                                    use_container_width=True,
+                                ):
+                                    delete_file(file_id)
+
+                            with cancel_col:
+                                if st.button(
+                                    "Cancel",
+                                    key=f"cancel_delete_file_{file_id}",
+                                    use_container_width=True,
+                                ):
+                                    st.session_state.confirm_delete_file_id = None
+                                    st.rerun()
+                        else:
+                            if st.button(
+                                "🗑️ Delete File",
+                                key=f"delete_file_{file_id}",
+                                use_container_width=True,
+                            ):
+                                st.session_state.confirm_delete_file_id = file_id
+                                st.rerun()
         else:
             st.caption("No files uploaded yet.")
 
@@ -1034,12 +1098,44 @@ def render_task_card(task, status):
                 st.rerun()
 
         with btn_col2:
-            if st.button(
-                "🗑️ Delete",
-                key=f"delete_btn_{task_id}",
-                use_container_width=True,
-            ):
-                delete_task(task_id)
+            if st.session_state.confirm_delete_task_id == task_id:
+                if st.button(
+                    "Cancel",
+                    key=f"cancel_delete_task_{task_id}",
+                    use_container_width=True,
+                ):
+                    st.session_state.confirm_delete_task_id = None
+                    st.rerun()
+            else:
+                if st.button(
+                    "🗑️ Delete",
+                    key=f"delete_btn_{task_id}",
+                    use_container_width=True,
+                ):
+                    st.session_state.confirm_delete_task_id = task_id
+                    st.rerun()
+
+        if st.session_state.confirm_delete_task_id == task_id:
+            st.warning("Delete this task? This cannot be undone.")
+
+            yes_col, cancel_col = st.columns(2)
+
+            with yes_col:
+                if st.button(
+                    "Yes, delete task",
+                    key=f"confirm_delete_task_{task_id}",
+                    use_container_width=True,
+                ):
+                    delete_task(task_id)
+
+            with cancel_col:
+                if st.button(
+                    "Keep task",
+                    key=f"keep_task_{task_id}",
+                    use_container_width=True,
+                ):
+                    st.session_state.confirm_delete_task_id = None
+                    st.rerun()
 
         render_comments(task)
         render_files(task)
@@ -1124,6 +1220,9 @@ else:
         st.session_state.user = None
         st.session_state.access_token = None
         st.session_state.selected_task_id = None
+        st.session_state.confirm_delete_task_id = None
+        st.session_state.confirm_delete_comment_id = None
+        st.session_state.confirm_delete_file_id = None
         st.rerun()
 
     menu_options = [
