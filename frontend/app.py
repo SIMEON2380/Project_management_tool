@@ -1,5 +1,8 @@
-import requests
+from datetime import date, datetime
+from html import escape
+
 import pandas as pd
+import requests
 import streamlit as st
 
 
@@ -58,6 +61,83 @@ st.markdown(
         min-width: 330px;
         max-width: 330px;
     }
+
+    .task-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 2px;
+        line-height: 1.2;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 4px;
+        margin-bottom: 4px;
+    }
+
+    .badge-low {
+        background-color: #374151;
+        color: #e5e7eb;
+    }
+
+    .badge-medium {
+        background-color: #1d4ed8;
+        color: #dbeafe;
+    }
+
+    .badge-high {
+        background-color: #ea580c;
+        color: #ffedd5;
+    }
+
+    .badge-urgent {
+        background-color: #dc2626;
+        color: #fee2e2;
+    }
+
+    .overdue {
+        color: #f87171;
+        font-weight: 700;
+        font-size: 13px;
+    }
+
+    .due-normal {
+        color: #d1d5db;
+        font-size: 13px;
+    }
+
+    .status-pill {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .status-not-started {
+        background-color: #374151;
+        color: #e5e7eb;
+    }
+
+    .status-in-progress {
+        background-color: #1d4ed8;
+        color: #dbeafe;
+    }
+
+    .status-blocked {
+        background-color: #991b1b;
+        color: #fee2e2;
+    }
+
+    .status-completed {
+        background-color: #166534;
+        color: #dcfce7;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -82,6 +162,56 @@ def auth_headers():
         return {}
 
     return {"Authorization": f"Bearer {st.session_state.access_token}"}
+
+
+# =========================
+# UI HELPERS
+# =========================
+def priority_badge(priority):
+    safe_priority = escape(priority or "Medium")
+    css_class = {
+        "Low": "badge-low",
+        "Medium": "badge-medium",
+        "High": "badge-high",
+        "Urgent": "badge-urgent",
+    }.get(priority, "badge-medium")
+
+    return f"<span class='badge {css_class}'>⚡ {safe_priority}</span>"
+
+
+def status_badge(status):
+    safe_status = escape(status or "Not Started")
+    css_class = {
+        "Not Started": "status-not-started",
+        "In Progress": "status-in-progress",
+        "Blocked": "status-blocked",
+        "Completed": "status-completed",
+    }.get(status, "status-not-started")
+
+    return f"<span class='status-pill {css_class}'>{safe_status}</span>"
+
+
+def parse_due_date(due_date):
+    if not due_date:
+        return None
+
+    try:
+        return datetime.strptime(str(due_date), "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def due_date_display(task):
+    due_date_value = task.get("due_date")
+    parsed_date = parse_due_date(due_date_value)
+
+    if not due_date_value:
+        return "<span class='due-normal'>📅 No due date</span>"
+
+    if parsed_date and parsed_date < date.today() and task.get("status") != "Completed":
+        return f"<span class='overdue'>⚠️ Overdue: {escape(str(due_date_value))}</span>"
+
+    return f"<span class='due-normal'>📅 {escape(str(due_date_value))}</span>"
 
 
 # =========================
@@ -720,28 +850,25 @@ def render_files(task):
 # =========================
 def render_task_card(task, status):
     task_id = task["id"]
+    task_title = escape(task.get("title") or "Untitled task")
+    task_description = escape(task.get("description") or "No description added.")
+    assigned_to = escape(task.get("assigned_to_name") or "Unassigned")
 
     with st.container(border=True):
         st.markdown(
             f"""
-            <div style='font-size:18px;font-weight:700;margin-bottom:2px;line-height:1.2;'>
-                {task['title']}
+            <div class="task-title">{task_title}</div>
+            <div style="font-size:13px;color:#9ca3af;margin-bottom:4px;">
+                {task_description}
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        st.caption(task.get("description") or "No description added.")
+        st.caption(f"👤 {assigned_to}")
 
-        meta_col1, meta_col2 = st.columns(2)
-
-        with meta_col1:
-            st.caption(f"👤 {task.get('assigned_to_name') or 'Unassigned'}")
-
-        with meta_col2:
-            st.caption(f"⚡ {task.get('priority')}")
-
-        st.caption(f"📅 {task.get('due_date') or 'No due date'}")
+        st.markdown(priority_badge(task.get("priority")), unsafe_allow_html=True)
+        st.markdown(due_date_display(task), unsafe_allow_html=True)
 
         btn_col1, btn_col2 = st.columns(2)
 
@@ -806,7 +933,7 @@ def render_kanban():
                 if task["status"] == status
             ]
 
-            st.markdown(f"### {status}")
+            st.markdown(status_badge(status), unsafe_allow_html=True)
             st.caption(f"{len(status_tasks)} task(s)")
 
             for task in status_tasks:
