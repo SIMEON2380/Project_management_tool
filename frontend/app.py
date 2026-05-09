@@ -62,6 +62,16 @@ st.markdown(
         max-width: 330px;
     }
 
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        transition: all 0.18s ease-in-out;
+    }
+
+    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+        transform: translateY(-2px);
+        border-color: #4b5563 !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
     .task-title {
         font-size: 18px;
         font-weight: 700;
