@@ -16,32 +16,47 @@ st.markdown(
     """
     <style>
     .block-container {
-        padding-top: 1rem;
+        padding-top: 2rem;
+        padding-left: 2rem;
+        padding-right: 2rem;
         padding-bottom: 1rem;
+        max-width: 95%;
+    }
+
+    h1 {
+        margin-top: 0rem;
+        margin-bottom: 1rem;
+        line-height: 1.2;
     }
 
     div[data-testid="stVerticalBlock"] {
-        gap: 0.35rem;
+        gap: 0.45rem;
     }
 
     div[data-testid="stExpander"] {
-        margin-top: -0.35rem;
-        margin-bottom: -0.35rem;
+        margin-top: -0.25rem;
+        margin-bottom: -0.25rem;
     }
 
     div.stButton > button {
-        padding: 0.2rem 0.5rem;
-        font-size: 12px;
-        min-height: 2rem;
+        padding: 0.25rem 0.6rem;
+        font-size: 13px;
+        min-height: 2.1rem;
+        border-radius: 0.5rem;
     }
 
     hr {
-        margin-top: 0.4rem !important;
-        margin-bottom: 0.4rem !important;
+        margin-top: 0.45rem !important;
+        margin-bottom: 0.45rem !important;
     }
 
     p {
-        margin-bottom: 0.2rem;
+        margin-bottom: 0.25rem;
+    }
+
+    section[data-testid="stSidebar"] {
+        min-width: 330px;
+        max-width: 330px;
     }
     </style>
     """,
@@ -75,15 +90,18 @@ def auth_headers():
 def safe_request(method, url, **kwargs):
     try:
         return requests.request(method, url, timeout=10, **kwargs)
+
     except requests.exceptions.ConnectionError:
         st.error(
             "Backend is not running. Start FastAPI with: "
             "`uvicorn backend.main:app --reload`"
         )
         return None
+
     except requests.exceptions.Timeout:
         st.error("Backend request timed out.")
         return None
+
     except requests.exceptions.RequestException as error:
         st.error(f"API error: {error}")
         return None
@@ -111,6 +129,7 @@ def login():
             st.session_state.access_token = payload["access_token"]
             st.success("Login successful")
             st.rerun()
+
         elif response:
             st.error("Invalid credentials")
 
@@ -164,6 +183,7 @@ def create_user_admin(full_name, email, password, role):
     if response and response.status_code == 200:
         st.success("User created")
         st.rerun()
+
     elif response:
         st.error(response.text)
 
@@ -235,6 +255,7 @@ def add_comment(task_id, comment):
     if response and response.status_code == 200:
         st.success("Comment added")
         st.rerun()
+
     elif response:
         st.error(response.text)
 
@@ -249,6 +270,7 @@ def delete_comment(comment_id):
     if response and response.status_code == 200:
         st.success("Comment deleted")
         st.rerun()
+
     elif response:
         st.error(response.text)
 
@@ -275,6 +297,7 @@ def upload_file(task_id, uploaded_file):
     if response and response.status_code == 200:
         st.success("File uploaded")
         st.rerun()
+
     elif response:
         st.error(response.text)
 
@@ -289,6 +312,7 @@ def delete_file(file_id):
     if response and response.status_code == 200:
         st.success("File deleted")
         st.rerun()
+
     elif response:
         st.error(response.text)
 
@@ -306,6 +330,7 @@ def move_task(task_id, new_status):
 
     if response and response.status_code == 200:
         st.rerun()
+
     elif response:
         st.error(response.text)
 
@@ -321,6 +346,7 @@ def delete_task(task_id):
         st.session_state.selected_task_id = None
         st.success("Task deleted")
         st.rerun()
+
     elif response:
         st.error(response.text)
 
@@ -337,6 +363,7 @@ def update_task(task_id, payload):
         st.session_state.selected_task_id = None
         st.success("Task updated")
         st.rerun()
+
     elif response:
         st.error(response.text)
 
@@ -464,6 +491,7 @@ def create_task():
         if response and response.status_code == 200:
             st.success("Task created")
             st.rerun()
+
         elif response:
             st.error(response.text)
 
@@ -535,7 +563,6 @@ def render_sidebar_edit_panel(tasks):
         user_options[f"{user['full_name']} ({user['role']})"] = user["id"]
 
     current_assigned_id = selected_task.get("assigned_to_id")
-
     selected_user_label = "Unassigned"
 
     for label, user_id in user_options.items():
@@ -741,7 +768,6 @@ def render_task_card(task, status):
         st.divider()
 
         move_col1, move_col2 = st.columns(2)
-
         status_index = STATUSES.index(status)
 
         with move_col1:
