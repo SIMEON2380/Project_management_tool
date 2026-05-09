@@ -148,6 +148,69 @@ st.markdown(
         background-color: #166534;
         color: #dcfce7;
     }
+
+    .metric-card {
+        background: #111827;
+        border: 1px solid #374151;
+        border-radius: 16px;
+        padding: 18px;
+        min-height: 120px;
+        transition: all 0.18s ease-in-out;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-2px);
+        border-color: #4b5563;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .metric-label {
+        color: #9ca3af;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .metric-value {
+        color: #f9fafb;
+        font-size: 34px;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .metric-sub {
+        color: #d1d5db;
+        font-size: 12px;
+        margin-top: 10px;
+    }
+
+    .metric-total {
+        border-left: 5px solid #6366f1;
+    }
+
+    .metric-not-started {
+        border-left: 5px solid #6b7280;
+    }
+
+    .metric-progress {
+        border-left: 5px solid #2563eb;
+    }
+
+    .metric-blocked {
+        border-left: 5px solid #dc2626;
+    }
+
+    .metric-completed {
+        border-left: 5px solid #16a34a;
+    }
+
+    .metric-urgent {
+        border-left: 5px solid #ef4444;
+    }
+
+    .metric-high {
+        border-left: 5px solid #f97316;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -199,6 +262,16 @@ def status_badge(status):
     }.get(status, "status-not-started")
 
     return f"<span class='status-pill {css_class}'>{safe_status}</span>"
+
+
+def metric_card(label, value, subtext, css_class):
+    return f"""
+    <div class="metric-card {css_class}">
+        <div class="metric-label">{escape(label)}</div>
+        <div class="metric-value">{escape(str(value))}</div>
+        <div class="metric-sub">{escape(subtext)}</div>
+    </div>
+    """
 
 
 def parse_due_date(due_date):
@@ -520,22 +593,91 @@ def render_dashboard():
         st.info("No dashboard data yet.")
         return
 
-    col1, col2, col3, col4 = st.columns(4)
+    row1_col1, row1_col2, row1_col3, row1_col4 = st.columns(4)
 
-    col1.metric("Total Tasks", stats.get("total_tasks", 0))
-    col2.metric("Completed", stats.get("completed_tasks", 0))
-    col3.metric("In Progress", stats.get("in_progress_tasks", 0))
-    col4.metric("Blocked", stats.get("blocked_tasks", 0))
+    with row1_col1:
+        st.markdown(
+            metric_card(
+                "Total Tasks",
+                stats.get("total_tasks", 0),
+                "All tasks in the system",
+                "metric-total",
+            ),
+            unsafe_allow_html=True,
+        )
 
-    col5, col6, col7 = st.columns(3)
+    with row1_col2:
+        st.markdown(
+            metric_card(
+                "Not Started",
+                stats.get("not_started_tasks", 0),
+                "Waiting to begin",
+                "metric-not-started",
+            ),
+            unsafe_allow_html=True,
+        )
 
-    col5.metric("Not Started", stats.get("not_started_tasks", 0))
-    col6.metric("Urgent", stats.get("urgent_tasks", 0))
-    col7.metric("High Priority", stats.get("high_priority_tasks", 0))
+    with row1_col3:
+        st.markdown(
+            metric_card(
+                "In Progress",
+                stats.get("in_progress_tasks", 0),
+                "Currently being worked on",
+                "metric-progress",
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with row1_col4:
+        st.markdown(
+            metric_card(
+                "Blocked",
+                stats.get("blocked_tasks", 0),
+                "Needs attention",
+                "metric-blocked",
+            ),
+            unsafe_allow_html=True,
+        )
+
+    row2_col1, row2_col2, row2_col3 = st.columns(3)
+
+    with row2_col1:
+        st.markdown(
+            metric_card(
+                "Completed",
+                stats.get("completed_tasks", 0),
+                "Finished tasks",
+                "metric-completed",
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with row2_col2:
+        st.markdown(
+            metric_card(
+                "Urgent",
+                stats.get("urgent_tasks", 0),
+                "Highest priority items",
+                "metric-urgent",
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with row2_col3:
+        st.markdown(
+            metric_card(
+                "High Priority",
+                stats.get("high_priority_tasks", 0),
+                "Important work",
+                "metric-high",
+            ),
+            unsafe_allow_html=True,
+        )
 
     workload = stats.get("workload", [])
 
     if workload:
+        st.divider()
         st.subheader("Workload by User")
         workload_df = pd.DataFrame(workload)
         st.bar_chart(workload_df.set_index("user_name"))
