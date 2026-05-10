@@ -46,45 +46,15 @@ st.markdown(
         margin-bottom: 0.35rem;
     }
 
-    .pill-not-started {
-        background: #475569;
-        color: white;
-    }
+    .pill-not-started { background: #475569; color: white; }
+    .pill-progress { background: #2563eb; color: white; }
+    .pill-blocked { background: #dc2626; color: white; }
+    .pill-completed { background: #16a34a; color: white; }
 
-    .pill-progress {
-        background: #2563eb;
-        color: white;
-    }
-
-    .pill-blocked {
-        background: #dc2626;
-        color: white;
-    }
-
-    .pill-completed {
-        background: #16a34a;
-        color: white;
-    }
-
-    .priority-low {
-        background: #64748b;
-        color: white;
-    }
-
-    .priority-medium {
-        background: #2563eb;
-        color: white;
-    }
-
-    .priority-high {
-        background: #f97316;
-        color: white;
-    }
-
-    .priority-urgent {
-        background: #dc2626;
-        color: white;
-    }
+    .priority-low { background: #64748b; color: white; }
+    .priority-medium { background: #2563eb; color: white; }
+    .priority-high { background: #f97316; color: white; }
+    .priority-urgent { background: #dc2626; color: white; }
 
     .priority-badge {
         display: inline-block;
@@ -321,19 +291,14 @@ def dashboard_page():
 
     with col1:
         dashboard_card("Total Tasks", total_tasks)
-
     with col2:
         dashboard_card("Not Started", not_started)
-
     with col3:
         dashboard_card("In Progress", in_progress)
-
     with col4:
         dashboard_card("Blocked", blocked)
-
     with col5:
         dashboard_card("Completed", completed)
-
     with col6:
         dashboard_card("Urgent", urgent)
 
@@ -647,6 +612,7 @@ def kanban_page():
                                     "/comments",
                                     {
                                         "task_id": task_id,
+                                        "user_id": st.session_state.user.get("id"),
                                         "comment": comment_text.strip(),
                                     },
                                 )
@@ -655,7 +621,8 @@ def kanban_page():
                                     st.success("Comment added.")
                                     st.rerun()
                                 else:
-                                    st.info("Comment endpoint may not be enabled yet.")
+                                    error = response.text if response else "No response from API"
+                                    st.error(f"Failed to add comment: {error}")
 
                     with st.expander("📎 Files"):
                         st.caption("File upload section placeholder. Backend upload support can be connected next.")
