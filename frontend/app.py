@@ -85,6 +85,12 @@ st.markdown(
         line-height: 1.1;
     }
 
+    .comment-box {
+        border-left: 3px solid rgba(128, 128, 128, 0.5);
+        padding-left: 0.6rem;
+        margin-bottom: 0.6rem;
+    }
+
     div.stButton > button,
     div[data-testid="stFormSubmitButton"] button {
         padding: 0.35rem 0.8rem;
@@ -208,6 +214,13 @@ def get_users():
 
 def get_tasks():
     response = api_get("/tasks")
+    if response and response.status_code == 200:
+        return response.json()
+    return []
+
+
+def get_task_comments(task_id):
+    response = api_get(f"/tasks/{task_id}/comments")
     if response and response.status_code == 200:
         return response.json()
     return []
@@ -449,6 +462,17 @@ def delete_task(task_id):
     st.error(f"Failed to delete task: {error}")
 
 
+def delete_comment(comment_id):
+    response = api_delete(f"/comments/{comment_id}")
+
+    if response and response.status_code == 200:
+        st.success("Comment deleted.")
+        st.rerun()
+
+    error = response.text if response else "No response from API"
+    st.error(f"Failed to delete comment: {error}")
+
+
 def safe_due_date(value):
     try:
         if value:
@@ -598,6 +622,41 @@ def kanban_page():
                                 delete_task(task_id)
 
                     with st.expander("💬 Comments"):
+                        comments = get_task_comments(task_id)
+
+                        if comments:
+                            st.write("Saved comments")
+                            for comment in comments:
+                                comment_id = comment.get("id")
+                                user_name = comment.get("user_name", "Unknown User")
+                                comment_text_existing = comment.get("comment", "")
+                                created_at = comment.get("created_at", "")
+
+                                st.markdown(
+                                    f"""
+                                    <div class="comment-box">
+                                        <strong>{escape(str(user_name))}</strong><br>
+                                        <small>{escape(str(created_at))}</small><br>
+                                        {escape(str(comment_text_existing))}
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
+
+                                current_user = st.session_state.user or {}
+                                can_delete = (
+                                    current_user.get("role") == "admin"
+                                    or current_user.get("id") == comment.get("user_id")
+                                )
+
+                                if can_delete:
+                                    if st.button("Delete Comment", key=f"delete_comment_{comment_id}"):
+                                        delete_comment(comment_id)
+                        else:
+                            st.caption("No comments yet.")
+
+                        st.divider()
+
                         comment_text = st.text_area(
                             "Add comment",
                             key=f"comment_text_{task_id}",
