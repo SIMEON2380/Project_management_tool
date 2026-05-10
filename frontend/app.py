@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date
 from html import escape
 
 import pandas as pd
@@ -15,9 +15,6 @@ PRIORITIES = ["Low", "Medium", "High", "Urgent"]
 st.set_page_config(page_title="Project Management Tool", layout="wide")
 
 
-# =========================
-# LIGHT THEME / READABILITY FIX
-# =========================
 st.markdown(
     """
     <style>
@@ -36,7 +33,6 @@ st.markdown(
 
     section[data-testid="stSidebar"] {
         background-color: #ffffff !important;
-        color: #111827 !important;
         border-right: 1px solid #e5e7eb;
     }
 
@@ -44,7 +40,7 @@ st.markdown(
         color: #111827 !important;
     }
 
-    h1, h2, h3, h4, h5, h6, p, label, span, div {
+    h1, h2, h3, h4, h5, h6, p, label, span {
         color: #111827 !important;
     }
 
@@ -54,23 +50,12 @@ st.markdown(
         line-height: 1.2;
     }
 
-    div[data-testid="stVerticalBlock"] {
-        gap: 0.45rem;
-    }
-
-    div[data-testid="stExpander"] {
-        margin-top: -0.25rem;
-        margin-bottom: -0.25rem;
-        background-color: #ffffff !important;
-        border-radius: 0.75rem;
-    }
-
     .stTextInput input,
     .stTextArea textarea,
     .stDateInput input {
         background-color: #ffffff !important;
         color: #111827 !important;
-        border: 1px solid #d1d5db !important;
+        border: 1px solid #9ca3af !important;
         border-radius: 0.5rem !important;
     }
 
@@ -79,17 +64,37 @@ st.markdown(
         color: #6b7280 !important;
     }
 
-    div[data-baseweb="select"] {
+    /* Fix selectbox dark fields */
+    div[data-baseweb="select"] > div {
         background-color: #ffffff !important;
         color: #111827 !important;
+        border: 1px solid #9ca3af !important;
         border-radius: 0.5rem !important;
     }
 
-    div[data-baseweb="select"] * {
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] div {
         color: #111827 !important;
     }
 
-    div.stButton > button {
+    div[data-baseweb="select"] svg {
+        color: #111827 !important;
+        fill: #111827 !important;
+    }
+
+    ul[role="listbox"],
+    li[role="option"] {
+        background-color: #ffffff !important;
+        color: #111827 !important;
+    }
+
+    li[role="option"]:hover {
+        background-color: #e5e7eb !important;
+        color: #111827 !important;
+    }
+
+    div.stButton > button,
+    div[data-testid="stFormSubmitButton"] button {
         background-color: #2563eb !important;
         color: #ffffff !important;
         padding: 0.35rem 0.8rem;
@@ -97,20 +102,25 @@ st.markdown(
         min-height: 2.2rem;
         border-radius: 0.5rem;
         border: none !important;
+        opacity: 1 !important;
     }
 
-    div.stButton > button:hover {
+    div.stButton > button:hover,
+    div[data-testid="stFormSubmitButton"] button:hover {
         background-color: #1d4ed8 !important;
         color: #ffffff !important;
+    }
+
+    div.stButton > button:disabled,
+    div[data-testid="stFormSubmitButton"] button:disabled {
+        background-color: #93c5fd !important;
+        color: #ffffff !important;
+        opacity: 1 !important;
     }
 
     hr {
         margin-top: 0.45rem !important;
         margin-bottom: 0.45rem !important;
-    }
-
-    p {
-        margin-bottom: 0.25rem;
     }
 
     .task-card {
@@ -121,22 +131,6 @@ st.markdown(
         margin-bottom: 0.75rem;
         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
-
-    .success-box {
-        background-color: #dcfce7;
-        color: #166534 !important;
-        padding: 0.75rem;
-        border-radius: 0.5rem;
-        font-weight: 600;
-    }
-
-    .error-box {
-        background-color: #fee2e2;
-        color: #991b1b !important;
-        padding: 0.75rem;
-        border-radius: 0.5rem;
-        font-weight: 600;
-    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -146,9 +140,6 @@ st.markdown(
 st.title("📌 Project Management Tool")
 
 
-# =========================
-# API HELPERS
-# =========================
 def api_headers():
     token = st.session_state.get("access_token")
     if token:
@@ -158,8 +149,7 @@ def api_headers():
 
 def api_get(path):
     try:
-        response = requests.get(f"{API_URL}{path}", headers=api_headers(), timeout=20)
-        return response
+        return requests.get(f"{API_URL}{path}", headers=api_headers(), timeout=20)
     except requests.RequestException as e:
         st.error(f"API connection error: {e}")
         return None
@@ -167,13 +157,12 @@ def api_get(path):
 
 def api_post(path, payload):
     try:
-        response = requests.post(
+        return requests.post(
             f"{API_URL}{path}",
             json=payload,
             headers=api_headers(),
             timeout=20,
         )
-        return response
     except requests.RequestException as e:
         st.error(f"API connection error: {e}")
         return None
@@ -181,13 +170,12 @@ def api_post(path, payload):
 
 def api_put(path, payload):
     try:
-        response = requests.put(
+        return requests.put(
             f"{API_URL}{path}",
             json=payload,
             headers=api_headers(),
             timeout=20,
         )
-        return response
     except requests.RequestException as e:
         st.error(f"API connection error: {e}")
         return None
@@ -195,16 +183,12 @@ def api_put(path, payload):
 
 def api_delete(path):
     try:
-        response = requests.delete(f"{API_URL}{path}", headers=api_headers(), timeout=20)
-        return response
+        return requests.delete(f"{API_URL}{path}", headers=api_headers(), timeout=20)
     except requests.RequestException as e:
         st.error(f"API connection error: {e}")
         return None
 
 
-# =========================
-# SESSION DEFAULTS
-# =========================
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
@@ -218,9 +202,6 @@ if "page" not in st.session_state:
     st.session_state.page = "Dashboard"
 
 
-# =========================
-# LOGIN PAGE
-# =========================
 def login_page():
     st.subheader("Login")
 
@@ -257,9 +238,6 @@ def login_page():
             st.error(f"Login failed: {detail}")
 
 
-# =========================
-# DATA LOADERS
-# =========================
 def get_users():
     response = api_get("/users")
     if response and response.status_code == 200:
@@ -281,9 +259,6 @@ def get_audit_logs():
     return []
 
 
-# =========================
-# SIDEBAR
-# =========================
 def sidebar():
     user = st.session_state.user or {}
 
@@ -299,20 +274,17 @@ def sidebar():
 
         st.write("Menu")
 
+        pages = ["Dashboard", "Kanban Board", "Create Task", "User Management", "Audit Logs"]
+
         page = st.radio(
             "",
-            ["Dashboard", "Kanban Board", "Create Task", "User Management", "Audit Logs"],
-            index=["Dashboard", "Kanban Board", "Create Task", "User Management", "Audit Logs"].index(
-                st.session_state.page
-            ),
+            pages,
+            index=pages.index(st.session_state.page),
         )
 
         st.session_state.page = page
 
 
-# =========================
-# DASHBOARD
-# =========================
 def dashboard_page():
     st.subheader("Dashboard")
 
@@ -335,9 +307,6 @@ def dashboard_page():
     st.dataframe(df, use_container_width=True)
 
 
-# =========================
-# CREATE TASK
-# =========================
 def create_task_page():
     st.subheader("Create Task")
 
@@ -354,17 +323,25 @@ def create_task_page():
 
     with st.form("create_task_form"):
         title = st.text_input("Task Title", placeholder="Enter task title")
-        description = st.text_area("Description", placeholder="Enter task description", height=140)
+        description = st.text_area(
+            "Description",
+            placeholder="Enter task description",
+            height=140,
+        )
 
         col1, col2 = st.columns(2)
+
         with col1:
             status = st.selectbox("Status", STATUSES)
+
         with col2:
             priority = st.selectbox("Priority", PRIORITIES)
 
         col3, col4 = st.columns(2)
+
         with col3:
             due_date = st.date_input("Due Date", value=date.today())
+
         with col4:
             assigned_to_label = st.selectbox("Assign To", list(user_options.keys()))
 
@@ -394,9 +371,6 @@ def create_task_page():
                 st.error(f"Failed to create task: {error}")
 
 
-# =========================
-# KANBAN BOARD
-# =========================
 def kanban_page():
     st.subheader("Kanban Board")
 
@@ -445,6 +419,7 @@ def kanban_page():
 
                 if st.button("Update", key=f"update_{task_id}"):
                     response = api_put(f"/tasks/{task_id}/status", {"status": new_status})
+
                     if response and response.status_code == 200:
                         st.success("Task updated.")
                         st.rerun()
@@ -452,9 +427,6 @@ def kanban_page():
                         st.error("Failed to update task.")
 
 
-# =========================
-# USER MANAGEMENT
-# =========================
 def user_management_page():
     st.subheader("User Management")
 
@@ -467,6 +439,7 @@ def user_management_page():
     users = get_users()
 
     st.write("Existing Users")
+
     if users:
         st.dataframe(pd.DataFrame(users), use_container_width=True)
     else:
@@ -505,9 +478,6 @@ def user_management_page():
                 st.error(f"Failed to create user: {error}")
 
 
-# =========================
-# AUDIT LOGS
-# =========================
 def audit_logs_page():
     st.subheader("Audit Logs")
 
@@ -526,9 +496,6 @@ def audit_logs_page():
     st.dataframe(pd.DataFrame(logs), use_container_width=True)
 
 
-# =========================
-# MAIN APP
-# =========================
 if not st.session_state.logged_in:
     login_page()
 else:
