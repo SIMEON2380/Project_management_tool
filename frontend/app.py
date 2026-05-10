@@ -14,7 +14,6 @@ PRIORITIES = ["Low", "Medium", "High", "Urgent"]
 
 st.set_page_config(page_title="Project Management Tool", layout="wide")
 
-
 st.markdown(
     """
     <style>
@@ -35,13 +34,6 @@ st.markdown(
     hr {
         margin-top: 0.45rem !important;
         margin-bottom: 0.45rem !important;
-    }
-
-    .task-card {
-        border: 1px solid rgba(128, 128, 128, 0.35);
-        border-radius: 0.75rem;
-        padding: 1rem;
-        margin-bottom: 0.75rem;
     }
 
     .dashboard-card {
@@ -79,7 +71,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
 
 st.title("📌 Project Management Tool")
 
@@ -342,11 +333,7 @@ def dashboard_page():
 
     table_df = table_df.rename(columns=rename_map)
 
-    st.dataframe(
-        table_df,
-        use_container_width=True,
-        hide_index=True,
-    )
+    st.dataframe(table_df, use_container_width=True, hide_index=True)
 
 
 def create_task_page():
@@ -435,22 +422,19 @@ def kanban_page():
 
             for task in status_tasks:
                 task_id = task.get("id")
-                title = escape(str(task.get("title", "")))
-                description = escape(str(task.get("description", "")))
-                priority = escape(str(task.get("priority", "")))
-                due_date = escape(str(task.get("due_date", "")))
 
-                st.markdown(
-                    f"""
-                    <div class="task-card">
-                        <strong>{title}</strong><br>
-                        <small>{description}</small><br><br>
-                        <strong>Priority:</strong> {priority}<br>
-                        <strong>Due:</strong> {due_date}
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                title = task.get("title", "")
+                description = task.get("description", "")
+                priority = task.get("priority", "")
+                due_date = task.get("due_date", "")
+
+                st.write(f"**{title}**")
+
+                if description:
+                    st.caption(description)
+
+                st.write(f"Priority: {priority}")
+                st.write(f"Due: {due_date}")
 
                 new_status = st.selectbox(
                     "Move to",
@@ -460,13 +444,18 @@ def kanban_page():
                 )
 
                 if st.button("Update", key=f"update_{task_id}"):
-                    response = api_put(f"/tasks/{task_id}/status", {"status": new_status})
+                    response = api_put(
+                        f"/tasks/{task_id}/status",
+                        {"status": new_status},
+                    )
 
                     if response and response.status_code == 200:
                         st.success("Task updated.")
                         st.rerun()
                     else:
                         st.error("Failed to update task.")
+
+                st.divider()
 
 
 def user_management_page():
