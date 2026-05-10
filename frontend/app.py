@@ -6,24 +6,46 @@ import requests
 import streamlit as st
 
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://worklog.elitemind.uk/project-api"
 
 STATUSES = ["Not Started", "In Progress", "Blocked", "Completed"]
 PRIORITIES = ["Low", "Medium", "High", "Urgent"]
 
 
 st.set_page_config(page_title="Project Management Tool", layout="wide")
-st.title("📌 Project Management Tool")
 
+
+# =========================
+# LIGHT THEME / READABILITY FIX
+# =========================
 st.markdown(
     """
     <style>
+    .stApp {
+        background-color: #f5f7fb !important;
+        color: #111827 !important;
+    }
+
     .block-container {
         padding-top: 2rem;
         padding-left: 2rem;
         padding-right: 2rem;
         padding-bottom: 1rem;
         max-width: 95%;
+    }
+
+    section[data-testid="stSidebar"] {
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        border-right: 1px solid #e5e7eb;
+    }
+
+    section[data-testid="stSidebar"] * {
+        color: #111827 !important;
+    }
+
+    h1, h2, h3, h4, h5, h6, p, label, span, div {
+        color: #111827 !important;
     }
 
     h1 {
@@ -39,13 +61,47 @@ st.markdown(
     div[data-testid="stExpander"] {
         margin-top: -0.25rem;
         margin-bottom: -0.25rem;
+        background-color: #ffffff !important;
+        border-radius: 0.75rem;
+    }
+
+    .stTextInput input,
+    .stTextArea textarea,
+    .stDateInput input {
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 0.5rem !important;
+    }
+
+    .stTextInput input::placeholder,
+    .stTextArea textarea::placeholder {
+        color: #6b7280 !important;
+    }
+
+    div[data-baseweb="select"] {
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        border-radius: 0.5rem !important;
+    }
+
+    div[data-baseweb="select"] * {
+        color: #111827 !important;
     }
 
     div.stButton > button {
-        padding: 0.25rem 0.6rem;
-        font-size: 13px;
-        min-height: 2.1rem;
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+        padding: 0.35rem 0.8rem;
+        font-size: 14px;
+        min-height: 2.2rem;
         border-radius: 0.5rem;
+        border: none !important;
+    }
+
+    div.stButton > button:hover {
+        background-color: #1d4ed8 !important;
+        color: #ffffff !important;
     }
 
     hr {
@@ -57,159 +113,29 @@ st.markdown(
         margin-bottom: 0.25rem;
     }
 
-    section[data-testid="stSidebar"] {
-        min-width: 330px;
-        max-width: 330px;
+    .task-card {
+        background-color: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
 
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-        transition: all 0.18s ease-in-out;
+    .success-box {
+        background-color: #dcfce7;
+        color: #166534 !important;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
     }
 
-    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
-        transform: translateY(-2px);
-        border-color: #4b5563 !important;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    }
-
-    .task-title {
-        font-size: 18px;
-        font-weight: 700;
-        margin-bottom: 2px;
-        line-height: 1.2;
-    }
-
-    .badge {
-        display: inline-block;
-        padding: 3px 9px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 700;
-        margin-top: 4px;
-        margin-bottom: 4px;
-    }
-
-    .badge-low {
-        background-color: #374151;
-        color: #e5e7eb;
-    }
-
-    .badge-medium {
-        background-color: #1d4ed8;
-        color: #dbeafe;
-    }
-
-    .badge-high {
-        background-color: #ea580c;
-        color: #ffedd5;
-    }
-
-    .badge-urgent {
-        background-color: #dc2626;
-        color: #fee2e2;
-    }
-
-    .overdue {
-        color: #f87171;
-        font-weight: 700;
-        font-size: 13px;
-    }
-
-    .due-normal {
-        color: #d1d5db;
-        font-size: 13px;
-    }
-
-    .status-pill {
-        display: inline-block;
-        padding: 3px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 700;
-        margin-bottom: 6px;
-    }
-
-    .status-not-started {
-        background-color: #374151;
-        color: #e5e7eb;
-    }
-
-    .status-in-progress {
-        background-color: #1d4ed8;
-        color: #dbeafe;
-    }
-
-    .status-blocked {
-        background-color: #991b1b;
-        color: #fee2e2;
-    }
-
-    .status-completed {
-        background-color: #166534;
-        color: #dcfce7;
-    }
-
-    .metric-card {
-        background: #111827;
-        border: 1px solid #374151;
-        border-radius: 16px;
-        padding: 18px;
-        min-height: 120px;
-        transition: all 0.18s ease-in-out;
-    }
-
-    .metric-card:hover {
-        transform: translateY(-2px);
-        border-color: #4b5563;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    }
-
-    .metric-label {
-        color: #9ca3af;
-        font-size: 13px;
-        font-weight: 700;
-        margin-bottom: 8px;
-    }
-
-    .metric-value {
-        color: #f9fafb;
-        font-size: 34px;
-        font-weight: 800;
-        line-height: 1;
-    }
-
-    .metric-sub {
-        color: #d1d5db;
-        font-size: 12px;
-        margin-top: 10px;
-    }
-
-    .metric-total {
-        border-left: 5px solid #6366f1;
-    }
-
-    .metric-not-started {
-        border-left: 5px solid #6b7280;
-    }
-
-    .metric-progress {
-        border-left: 5px solid #2563eb;
-    }
-
-    .metric-blocked {
-        border-left: 5px solid #dc2626;
-    }
-
-    .metric-completed {
-        border-left: 5px solid #16a34a;
-    }
-
-    .metric-urgent {
-        border-left: 5px solid #ef4444;
-    }
-
-    .metric-high {
-        border-left: 5px solid #f97316;
+    .error-box {
+        background-color: #fee2e2;
+        color: #991b1b !important;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
     }
     </style>
     """,
@@ -217,489 +143,337 @@ st.markdown(
 )
 
 
-if "user" not in st.session_state:
-    st.session_state.user = None
-
-if "access_token" not in st.session_state:
-    st.session_state.access_token = None
-
-if "selected_task_id" not in st.session_state:
-    st.session_state.selected_task_id = None
-
-if "confirm_delete_task_id" not in st.session_state:
-    st.session_state.confirm_delete_task_id = None
-
-if "confirm_delete_comment_id" not in st.session_state:
-    st.session_state.confirm_delete_comment_id = None
-
-if "confirm_delete_file_id" not in st.session_state:
-    st.session_state.confirm_delete_file_id = None
-
-
-# =========================
-# AUTH HEADERS
-# =========================
-def auth_headers():
-    if not st.session_state.access_token:
-        return {}
-
-    return {"Authorization": f"Bearer {st.session_state.access_token}"}
-
-
-# =========================
-# UI HELPERS
-# =========================
-def priority_badge(priority):
-    safe_priority = escape(priority or "Medium")
-    css_class = {
-        "Low": "badge-low",
-        "Medium": "badge-medium",
-        "High": "badge-high",
-        "Urgent": "badge-urgent",
-    }.get(priority, "badge-medium")
-
-    return f"<span class='badge {css_class}'>⚡ {safe_priority}</span>"
-
-
-def status_badge(status):
-    safe_status = escape(status or "Not Started")
-    css_class = {
-        "Not Started": "status-not-started",
-        "In Progress": "status-in-progress",
-        "Blocked": "status-blocked",
-        "Completed": "status-completed",
-    }.get(status, "status-not-started")
-
-    return f"<span class='status-pill {css_class}'>{safe_status}</span>"
-
-
-def metric_card(label, value, subtext, css_class):
-    return f"""
-    <div class="metric-card {css_class}">
-        <div class="metric-label">{escape(label)}</div>
-        <div class="metric-value">{escape(str(value))}</div>
-        <div class="metric-sub">{escape(subtext)}</div>
-    </div>
-    """
-
-
-def parse_due_date(due_date):
-    if not due_date:
-        return None
-
-    try:
-        return datetime.strptime(str(due_date), "%Y-%m-%d").date()
-    except ValueError:
-        return None
-
-
-def due_date_display(task):
-    due_date_value = task.get("due_date")
-    parsed_date = parse_due_date(due_date_value)
-
-    if not due_date_value:
-        return "<span class='due-normal'>📅 No due date</span>"
-
-    if parsed_date and parsed_date < date.today() and task.get("status") != "Completed":
-        return f"<span class='overdue'>⚠️ Overdue: {escape(str(due_date_value))}</span>"
-
-    return f"<span class='due-normal'>📅 {escape(str(due_date_value))}</span>"
-
-
-# =========================
-# API REQUEST HELPER
-# =========================
-def safe_request(method, url, **kwargs):
-    try:
-        return requests.request(method, url, timeout=10, **kwargs)
-
-    except requests.exceptions.ConnectionError:
-        st.error(
-            "Backend is not running. Start FastAPI with: "
-            "`uvicorn backend.main:app --reload`"
-        )
-        return None
-
-    except requests.exceptions.Timeout:
-        st.error("Backend request timed out.")
-        return None
-
-    except requests.exceptions.RequestException as error:
-        st.error(f"API error: {error}")
-        return None
-
-
-# =========================
-# LOGIN
-# =========================
-def login():
-    st.subheader("Login")
-
-    email = st.text_input("Email")
-    password = st.text_input("Password", type="password")
-
-    if st.button("Login"):
-        response = safe_request(
-            "POST",
-            f"{API_URL}/login",
-            json={"email": email, "password": password},
-        )
-
-        if response and response.status_code == 200:
-            payload = response.json()
-            st.session_state.user = payload["user"]
-            st.session_state.access_token = payload["access_token"]
-            st.success("Login successful")
-            st.rerun()
-
-        elif response:
-            st.error("Invalid credentials")
+st.title("📌 Project Management Tool")
 
 
 # =========================
 # API HELPERS
 # =========================
-def get_tasks(params=None):
-    response = safe_request(
-        "GET",
-        f"{API_URL}/tasks",
-        params=params or {},
-        headers=auth_headers(),
-    )
-
-    if response and response.status_code == 200:
-        return response.json()
-
-    if response:
-        st.error(response.text)
-
-    return []
-
-
-def get_users():
-    response = safe_request(
-        "GET",
-        f"{API_URL}/users",
-        headers=auth_headers(),
-    )
-
-    if response and response.status_code == 200:
-        return response.json()
-
-    return []
-
-
-def create_user_admin(full_name, email, password, role):
-    response = safe_request(
-        "POST",
-        f"{API_URL}/users",
-        json={
-            "full_name": full_name,
-            "email": email,
-            "password": password,
-            "role": role,
-        },
-        headers=auth_headers(),
-    )
-
-    if response and response.status_code == 200:
-        st.success("User created")
-        st.rerun()
-
-    elif response:
-        st.error(response.text)
-
-
-def get_comments(task_id):
-    response = safe_request(
-        "GET",
-        f"{API_URL}/tasks/{task_id}/comments",
-        headers=auth_headers(),
-    )
-
-    if response and response.status_code == 200:
-        return response.json()
-
-    return []
-
-
-def get_files(task_id):
-    response = safe_request(
-        "GET",
-        f"{API_URL}/tasks/{task_id}/files",
-        headers=auth_headers(),
-    )
-
-    if response and response.status_code == 200:
-        return response.json()
-
-    return []
-
-
-def get_dashboard_stats():
-    response = safe_request(
-        "GET",
-        f"{API_URL}/dashboard/stats",
-        headers=auth_headers(),
-    )
-
-    if response and response.status_code == 200:
-        return response.json()
-
+def api_headers():
+    token = st.session_state.get("access_token")
+    if token:
+        return {"Authorization": f"Bearer {token}"}
     return {}
 
 
-def get_audit_logs():
-    response = safe_request(
-        "GET",
-        f"{API_URL}/audit-logs",
-        headers=auth_headers(),
-    )
+def api_get(path):
+    try:
+        response = requests.get(f"{API_URL}{path}", headers=api_headers(), timeout=20)
+        return response
+    except requests.RequestException as e:
+        st.error(f"API connection error: {e}")
+        return None
 
+
+def api_post(path, payload):
+    try:
+        response = requests.post(
+            f"{API_URL}{path}",
+            json=payload,
+            headers=api_headers(),
+            timeout=20,
+        )
+        return response
+    except requests.RequestException as e:
+        st.error(f"API connection error: {e}")
+        return None
+
+
+def api_put(path, payload):
+    try:
+        response = requests.put(
+            f"{API_URL}{path}",
+            json=payload,
+            headers=api_headers(),
+            timeout=20,
+        )
+        return response
+    except requests.RequestException as e:
+        st.error(f"API connection error: {e}")
+        return None
+
+
+def api_delete(path):
+    try:
+        response = requests.delete(f"{API_URL}{path}", headers=api_headers(), timeout=20)
+        return response
+    except requests.RequestException as e:
+        st.error(f"API connection error: {e}")
+        return None
+
+
+# =========================
+# SESSION DEFAULTS
+# =========================
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if "access_token" not in st.session_state:
+    st.session_state.access_token = None
+
+if "user" not in st.session_state:
+    st.session_state.user = None
+
+if "page" not in st.session_state:
+    st.session_state.page = "Dashboard"
+
+
+# =========================
+# LOGIN PAGE
+# =========================
+def login_page():
+    st.subheader("Login")
+
+    email = st.text_input("Email", value="")
+    password = st.text_input("Password", type="password", value="")
+
+    if st.button("Login"):
+        if not email or not password:
+            st.warning("Enter email and password.")
+            return
+
+        try:
+            response = requests.post(
+                f"{API_URL}/login",
+                json={"email": email, "password": password},
+                timeout=20,
+            )
+        except requests.RequestException as e:
+            st.error(f"API connection error: {e}")
+            return
+
+        if response.status_code == 200:
+            data = response.json()
+            st.session_state.logged_in = True
+            st.session_state.access_token = data.get("access_token")
+            st.session_state.user = data.get("user")
+            st.success("Login successful.")
+            st.rerun()
+        else:
+            try:
+                detail = response.json().get("detail", response.text)
+            except Exception:
+                detail = response.text
+            st.error(f"Login failed: {detail}")
+
+
+# =========================
+# DATA LOADERS
+# =========================
+def get_users():
+    response = api_get("/users")
     if response and response.status_code == 200:
         return response.json()
-
     return []
 
 
-def add_comment(task_id, comment):
-    response = safe_request(
-        "POST",
-        f"{API_URL}/comments",
-        json={
-            "task_id": task_id,
-            "user_id": st.session_state.user["id"],
-            "comment": comment,
-        },
-        headers=auth_headers(),
-    )
-
+def get_tasks():
+    response = api_get("/tasks")
     if response and response.status_code == 200:
-        st.success("Comment added")
-        st.rerun()
-
-    elif response:
-        st.error(response.text)
+        return response.json()
+    return []
 
 
-def delete_comment(comment_id):
-    response = safe_request(
-        "DELETE",
-        f"{API_URL}/comments/{comment_id}",
-        headers=auth_headers(),
-    )
-
+def get_audit_logs():
+    response = api_get("/audit-logs")
     if response and response.status_code == 200:
-        st.session_state.confirm_delete_comment_id = None
-        st.success("Comment deleted")
-        st.rerun()
-
-    elif response:
-        st.error(response.text)
+        return response.json()
+    return []
 
 
-def upload_file(task_id, uploaded_file):
-    files = {
-        "file": (
-            uploaded_file.name,
-            uploaded_file.getvalue(),
-            uploaded_file.type,
+# =========================
+# SIDEBAR
+# =========================
+def sidebar():
+    user = st.session_state.user or {}
+
+    with st.sidebar:
+        st.success(f"Logged in as {user.get('full_name', 'User')}")
+        st.write(f"Role: {user.get('role', 'user')}")
+
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.session_state.access_token = None
+            st.session_state.user = None
+            st.rerun()
+
+        st.write("Menu")
+
+        page = st.radio(
+            "",
+            ["Dashboard", "Kanban Board", "Create Task", "User Management", "Audit Logs"],
+            index=["Dashboard", "Kanban Board", "Create Task", "User Management", "Audit Logs"].index(
+                st.session_state.page
+            ),
         )
-    }
 
-    data = {"uploaded_by_id": st.session_state.user["id"]}
-
-    response = safe_request(
-        "POST",
-        f"{API_URL}/tasks/{task_id}/files",
-        files=files,
-        data=data,
-        headers=auth_headers(),
-    )
-
-    if response and response.status_code == 200:
-        st.success("File uploaded")
-        st.rerun()
-
-    elif response:
-        st.error(response.text)
-
-
-def delete_file(file_id):
-    response = safe_request(
-        "DELETE",
-        f"{API_URL}/files/{file_id}",
-        headers=auth_headers(),
-    )
-
-    if response and response.status_code == 200:
-        st.session_state.confirm_delete_file_id = None
-        st.success("File deleted")
-        st.rerun()
-
-    elif response:
-        st.error(response.text)
-
-
-def move_task(task_id, new_status):
-    response = safe_request(
-        "PUT",
-        f"{API_URL}/tasks/{task_id}/status",
-        json={
-            "status": new_status,
-            "user_id": st.session_state.user["id"],
-        },
-        headers=auth_headers(),
-    )
-
-    if response and response.status_code == 200:
-        st.rerun()
-
-    elif response:
-        st.error(response.text)
-
-
-def delete_task(task_id):
-    response = safe_request(
-        "DELETE",
-        f"{API_URL}/tasks/{task_id}",
-        headers=auth_headers(),
-    )
-
-    if response and response.status_code == 200:
-        st.session_state.selected_task_id = None
-        st.session_state.confirm_delete_task_id = None
-        st.success("Task deleted")
-        st.rerun()
-
-    elif response:
-        st.error(response.text)
-
-
-def update_task(task_id, payload):
-    response = safe_request(
-        "PUT",
-        f"{API_URL}/tasks/{task_id}",
-        json=payload,
-        headers=auth_headers(),
-    )
-
-    if response and response.status_code == 200:
-        st.session_state.selected_task_id = None
-        st.success("Task updated")
-        st.rerun()
-
-    elif response:
-        st.error(response.text)
+        st.session_state.page = page
 
 
 # =========================
 # DASHBOARD
 # =========================
-def render_dashboard():
+def dashboard_page():
     st.subheader("Dashboard")
 
-    stats = get_dashboard_stats()
+    tasks = get_tasks()
 
-    if not stats:
-        st.info("No dashboard data yet.")
+    if not tasks:
+        st.info("No tasks found.")
         return
 
-    row1_col1, row1_col2, row1_col3, row1_col4 = st.columns(4)
+    df = pd.DataFrame(tasks)
 
-    with row1_col1:
-        st.markdown(
-            metric_card(
-                "Total Tasks",
-                stats.get("total_tasks", 0),
-                "All tasks in the system",
-                "metric-total",
-            ),
-            unsafe_allow_html=True,
-        )
+    col1, col2, col3, col4 = st.columns(4)
 
-    with row1_col2:
-        st.markdown(
-            metric_card(
-                "Not Started",
-                stats.get("not_started_tasks", 0),
-                "Waiting to begin",
-                "metric-not-started",
-            ),
-            unsafe_allow_html=True,
-        )
+    col1.metric("Total Tasks", len(df))
+    col2.metric("Not Started", len(df[df["status"] == "Not Started"]) if "status" in df else 0)
+    col3.metric("In Progress", len(df[df["status"] == "In Progress"]) if "status" in df else 0)
+    col4.metric("Completed", len(df[df["status"] == "Completed"]) if "status" in df else 0)
 
-    with row1_col3:
-        st.markdown(
-            metric_card(
-                "In Progress",
-                stats.get("in_progress_tasks", 0),
-                "Currently being worked on",
-                "metric-progress",
-            ),
-            unsafe_allow_html=True,
-        )
+    st.divider()
+    st.dataframe(df, use_container_width=True)
 
-    with row1_col4:
-        st.markdown(
-            metric_card(
-                "Blocked",
-                stats.get("blocked_tasks", 0),
-                "Needs attention",
-                "metric-blocked",
-            ),
-            unsafe_allow_html=True,
-        )
 
-    row2_col1, row2_col2, row2_col3 = st.columns(3)
+# =========================
+# CREATE TASK
+# =========================
+def create_task_page():
+    st.subheader("Create Task")
 
-    with row2_col1:
-        st.markdown(
-            metric_card(
-                "Completed",
-                stats.get("completed_tasks", 0),
-                "Finished tasks",
-                "metric-completed",
-            ),
-            unsafe_allow_html=True,
-        )
+    users = get_users()
 
-    with row2_col2:
-        st.markdown(
-            metric_card(
-                "Urgent",
-                stats.get("urgent_tasks", 0),
-                "Highest priority items",
-                "metric-urgent",
-            ),
-            unsafe_allow_html=True,
-        )
+    if not users:
+        st.warning("No users found. Create a user first.")
+        return
 
-    with row2_col3:
-        st.markdown(
-            metric_card(
-                "High Priority",
-                stats.get("high_priority_tasks", 0),
-                "Important work",
-                "metric-high",
-            ),
-            unsafe_allow_html=True,
-        )
+    user_options = {
+        f"{u.get('full_name')} ({u.get('role')})": u.get("id")
+        for u in users
+    }
 
-    workload = stats.get("workload", [])
+    with st.form("create_task_form"):
+        title = st.text_input("Task Title", placeholder="Enter task title")
+        description = st.text_area("Description", placeholder="Enter task description", height=140)
 
-    if workload:
-        st.divider()
-        st.subheader("Workload by User")
-        workload_df = pd.DataFrame(workload)
-        st.bar_chart(workload_df.set_index("user_name"))
+        col1, col2 = st.columns(2)
+        with col1:
+            status = st.selectbox("Status", STATUSES)
+        with col2:
+            priority = st.selectbox("Priority", PRIORITIES)
+
+        col3, col4 = st.columns(2)
+        with col3:
+            due_date = st.date_input("Due Date", value=date.today())
+        with col4:
+            assigned_to_label = st.selectbox("Assign To", list(user_options.keys()))
+
+        submitted = st.form_submit_button("Save Task")
+
+        if submitted:
+            if not title.strip():
+                st.error("Task title is required.")
+                return
+
+            payload = {
+                "title": title.strip(),
+                "description": description.strip(),
+                "status": status,
+                "priority": priority,
+                "due_date": due_date.strftime("%Y-%m-%d"),
+                "assigned_to_id": user_options[assigned_to_label],
+            }
+
+            response = api_post("/tasks", payload)
+
+            if response and response.status_code in [200, 201]:
+                st.success("Task created successfully.")
+                st.rerun()
+            else:
+                error = response.text if response else "No response from API"
+                st.error(f"Failed to create task: {error}")
+
+
+# =========================
+# KANBAN BOARD
+# =========================
+def kanban_page():
+    st.subheader("Kanban Board")
+
+    tasks = get_tasks()
+
+    if not tasks:
+        st.info("No tasks found.")
+        return
+
+    cols = st.columns(len(STATUSES))
+
+    for index, status in enumerate(STATUSES):
+        with cols[index]:
+            st.markdown(f"### {status}")
+
+            status_tasks = [task for task in tasks if task.get("status") == status]
+
+            if not status_tasks:
+                st.caption("No tasks")
+
+            for task in status_tasks:
+                task_id = task.get("id")
+                title = escape(str(task.get("title", "")))
+                description = escape(str(task.get("description", "")))
+                priority = escape(str(task.get("priority", "")))
+                due_date = escape(str(task.get("due_date", "")))
+
+                st.markdown(
+                    f"""
+                    <div class="task-card">
+                        <strong>{title}</strong><br>
+                        <small>{description}</small><br><br>
+                        <strong>Priority:</strong> {priority}<br>
+                        <strong>Due:</strong> {due_date}
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                new_status = st.selectbox(
+                    "Move to",
+                    STATUSES,
+                    index=STATUSES.index(status),
+                    key=f"status_{task_id}",
+                )
+
+                if st.button("Update", key=f"update_{task_id}"):
+                    response = api_put(f"/tasks/{task_id}/status", {"status": new_status})
+                    if response and response.status_code == 200:
+                        st.success("Task updated.")
+                        st.rerun()
+                    else:
+                        st.error("Failed to update task.")
 
 
 # =========================
 # USER MANAGEMENT
 # =========================
-def render_user_management():
-    st.subheader("Admin - User Management")
+def user_management_page():
+    st.subheader("User Management")
+
+    current_user = st.session_state.user or {}
+
+    if current_user.get("role") != "admin":
+        st.warning("Only admins can access user management.")
+        return
+
+    users = get_users()
+
+    st.write("Existing Users")
+    if users:
+        st.dataframe(pd.DataFrame(users), use_container_width=True)
+    else:
+        st.info("No users found.")
+
+    st.divider()
+    st.write("Create New User")
 
     with st.form("create_user_form"):
         full_name = st.text_input("Full Name")
@@ -710,544 +484,63 @@ def render_user_management():
         submitted = st.form_submit_button("Create User")
 
         if submitted:
-            if not full_name.strip() or not email.strip() or not password.strip():
-                st.error("Full name, email, and password are required.")
-            else:
-                create_user_admin(
-                    full_name=full_name,
-                    email=email,
-                    password=password,
-                    role=role,
-                )
-
-    st.divider()
-
-    users = get_users()
-
-    if users:
-        st.subheader("Existing Users")
-        users_df = pd.DataFrame(users)
-        st.dataframe(users_df, use_container_width=True, hide_index=True)
-    else:
-        st.info("No users found.")
-
-
-# =========================
-# TASK CREATION
-# =========================
-def create_task():
-    st.subheader("Create Task")
-
-    title = st.text_input("Task Title")
-    description = st.text_area("Description")
-    status = st.selectbox("Status", STATUSES)
-    priority = st.selectbox("Priority", PRIORITIES)
-    due_date = st.date_input("Due Date")
-
-    users = get_users()
-
-    user_options = {
-        f"{user['full_name']} ({user['role']})": user["id"]
-        for user in users
-    }
-
-    selected_user = st.selectbox(
-        "Assign To",
-        list(user_options.keys()) if user_options else ["No users"],
-    )
-
-    if st.button("Save Task"):
-        if not title.strip():
-            st.error("Task title is required.")
-            return
-
-        assigned_to_id = (
-            user_options[selected_user]
-            if selected_user in user_options
-            else None
-        )
-
-        response = safe_request(
-            "POST",
-            f"{API_URL}/tasks",
-            json={
-                "title": title,
-                "description": description,
-                "status": status,
-                "priority": priority,
-                "due_date": str(due_date),
-                "assigned_to_id": assigned_to_id,
-                "created_by_id": st.session_state.user["id"],
-            },
-            headers=auth_headers(),
-        )
-
-        if response and response.status_code == 200:
-            st.success("Task created")
-            st.rerun()
-
-        elif response:
-            st.error(response.text)
-
-
-# =========================
-# FILTERS
-# =========================
-def build_task_filters():
-    users = get_users()
-
-    with st.expander("🔎 Search and Filters", expanded=False):
-        search = st.text_input("Search title or description")
-
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            status_filter = st.selectbox("Status", ["All"] + STATUSES)
-
-        with col2:
-            priority_filter = st.selectbox("Priority", ["All"] + PRIORITIES)
-
-        user_options = {"All": None}
-
-        for user in users:
-            user_options[f"{user['full_name']} ({user['role']})"] = user["id"]
-
-        with col3:
-            assigned_user = st.selectbox("Assigned To", list(user_options.keys()))
-
-    params = {}
-
-    if search.strip():
-        params["search"] = search.strip()
-
-    if status_filter != "All":
-        params["status"] = status_filter
-
-    if priority_filter != "All":
-        params["priority"] = priority_filter
-
-    if user_options[assigned_user] is not None:
-        params["assigned_to_id"] = user_options[assigned_user]
-
-    return params
-
-
-# =========================
-# SIDEBAR EDIT PANEL
-# =========================
-def render_sidebar_edit_panel(tasks):
-    selected_task = None
-
-    for task in tasks:
-        if task["id"] == st.session_state.selected_task_id:
-            selected_task = task
-            break
-
-    if not selected_task:
-        return
-
-    st.sidebar.divider()
-    st.sidebar.subheader("Edit Task")
-
-    users = get_users()
-
-    user_options = {"Unassigned": None}
-
-    for user in users:
-        user_options[f"{user['full_name']} ({user['role']})"] = user["id"]
-
-    current_assigned_id = selected_task.get("assigned_to_id")
-    selected_user_label = "Unassigned"
-
-    for label, user_id in user_options.items():
-        if user_id == current_assigned_id:
-            selected_user_label = label
-            break
-
-    new_title = st.sidebar.text_input(
-        "Title",
-        value=selected_task["title"],
-        key=f"sidebar_title_{selected_task['id']}",
-    )
-
-    new_description = st.sidebar.text_area(
-        "Description",
-        value=selected_task.get("description") or "",
-        key=f"sidebar_description_{selected_task['id']}",
-    )
-
-    current_status = selected_task.get("status") or "Not Started"
-    current_priority = selected_task.get("priority") or "Medium"
-
-    new_status = st.sidebar.selectbox(
-        "Status",
-        STATUSES,
-        index=STATUSES.index(current_status)
-        if current_status in STATUSES
-        else 0,
-        key=f"sidebar_status_{selected_task['id']}",
-    )
-
-    new_priority = st.sidebar.selectbox(
-        "Priority",
-        PRIORITIES,
-        index=PRIORITIES.index(current_priority)
-        if current_priority in PRIORITIES
-        else 1,
-        key=f"sidebar_priority_{selected_task['id']}",
-    )
-
-    selected_user = st.sidebar.selectbox(
-        "Assigned To",
-        list(user_options.keys()),
-        index=list(user_options.keys()).index(selected_user_label),
-        key=f"sidebar_assigned_{selected_task['id']}",
-    )
-
-    if st.sidebar.button("💾 Save Task", use_container_width=True):
-        if not new_title.strip():
-            st.sidebar.error("Task title is required.")
-            return
-
-        update_task(
-            selected_task["id"],
-            {
-                "title": new_title,
-                "description": new_description,
-                "status": new_status,
-                "priority": new_priority,
-                "due_date": selected_task.get("due_date") or "",
-                "assigned_to_id": user_options[selected_user],
-                "created_by_id": st.session_state.user["id"],
-            },
-        )
-
-    if st.sidebar.button("Close Edit Panel", use_container_width=True):
-        st.session_state.selected_task_id = None
-        st.rerun()
-
-
-# =========================
-# COMMENTS
-# =========================
-def render_comments(task):
-    task_id = task["id"]
-
-    with st.expander("💬 Comments", expanded=False):
-        comments = get_comments(task_id)
-
-        if comments:
-            for comment in comments:
-                comment_id = comment["id"]
-
-                with st.container(border=True):
-                    st.write(comment["comment"])
-                    st.caption(
-                        f"👤 {comment.get('user_name', 'Unknown User')} • {comment['created_at']}"
-                    )
-
-                    can_delete = (
-                        st.session_state.user["role"] == "admin"
-                        or comment["user_id"] == st.session_state.user["id"]
-                    )
-
-                    if can_delete:
-                        if st.session_state.confirm_delete_comment_id == comment_id:
-                            st.warning("Delete this comment?")
-
-                            yes_col, cancel_col = st.columns(2)
-
-                            with yes_col:
-                                if st.button(
-                                    "Yes, delete",
-                                    key=f"confirm_delete_comment_{comment_id}",
-                                    use_container_width=True,
-                                ):
-                                    delete_comment(comment_id)
-
-                            with cancel_col:
-                                if st.button(
-                                    "Cancel",
-                                    key=f"cancel_delete_comment_{comment_id}",
-                                    use_container_width=True,
-                                ):
-                                    st.session_state.confirm_delete_comment_id = None
-                                    st.rerun()
-                        else:
-                            if st.button(
-                                "🗑️ Delete Comment",
-                                key=f"delete_comment_{comment_id}",
-                                use_container_width=True,
-                            ):
-                                st.session_state.confirm_delete_comment_id = comment_id
-                                st.rerun()
-        else:
-            st.caption("No comments yet.")
-
-        comment_text = st.text_area(
-            "Add comment",
-            key=f"comment_text_{task_id}",
-        )
-
-        if st.button("Post Comment", key=f"post_comment_{task_id}"):
-            if comment_text.strip():
-                add_comment(task_id, comment_text)
-            else:
-                st.warning("Write a comment first.")
-
-
-# =========================
-# FILES
-# =========================
-def render_files(task):
-    task_id = task["id"]
-
-    with st.expander("📎 Files", expanded=False):
-        files = get_files(task_id)
-
-        if files:
-            for file in files:
-                file_id = file["id"]
-
-                with st.container(border=True):
-                    st.write(f"📄 {file['filename']}")
-                    st.caption(f"Uploaded: {file['uploaded_at']}")
-
-                    can_delete = (
-                        st.session_state.user["role"] == "admin"
-                        or file["uploaded_by_id"] == st.session_state.user["id"]
-                    )
-
-                    if can_delete:
-                        if st.session_state.confirm_delete_file_id == file_id:
-                            st.warning("Delete this file record?")
-
-                            yes_col, cancel_col = st.columns(2)
-
-                            with yes_col:
-                                if st.button(
-                                    "Yes, delete",
-                                    key=f"confirm_delete_file_{file_id}",
-                                    use_container_width=True,
-                                ):
-                                    delete_file(file_id)
-
-                            with cancel_col:
-                                if st.button(
-                                    "Cancel",
-                                    key=f"cancel_delete_file_{file_id}",
-                                    use_container_width=True,
-                                ):
-                                    st.session_state.confirm_delete_file_id = None
-                                    st.rerun()
-                        else:
-                            if st.button(
-                                "🗑️ Delete File",
-                                key=f"delete_file_{file_id}",
-                                use_container_width=True,
-                            ):
-                                st.session_state.confirm_delete_file_id = file_id
-                                st.rerun()
-        else:
-            st.caption("No files uploaded yet.")
-
-        uploaded_file = st.file_uploader(
-            "Upload file",
-            key=f"upload_file_{task_id}",
-        )
-
-        if uploaded_file:
-            if st.button("Upload", key=f"upload_btn_{task_id}"):
-                upload_file(task_id, uploaded_file)
-
-
-# =========================
-# KANBAN BOARD
-# =========================
-def render_task_card(task, status):
-    task_id = task["id"]
-    task_title = escape(task.get("title") or "Untitled task")
-    task_description = escape(task.get("description") or "No description added.")
-    assigned_to = escape(task.get("assigned_to_name") or "Unassigned")
-
-    with st.container(border=True):
-        st.markdown(
-            f"""
-            <div class="task-title">{task_title}</div>
-            <div style="font-size:13px;color:#9ca3af;margin-bottom:4px;">
-                {task_description}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        st.caption(f"👤 {assigned_to}")
-
-        st.markdown(priority_badge(task.get("priority")), unsafe_allow_html=True)
-        st.markdown(due_date_display(task), unsafe_allow_html=True)
-
-        btn_col1, btn_col2 = st.columns(2)
-
-        with btn_col1:
-            if st.button(
-                "✏️ Edit",
-                key=f"edit_btn_{task_id}",
-                use_container_width=True,
-            ):
-                st.session_state.selected_task_id = task_id
+            if not full_name or not email or not password:
+                st.error("Full name, email and password are required.")
+                return
+
+            payload = {
+                "full_name": full_name.strip(),
+                "email": email.strip(),
+                "password": password,
+                "role": role,
+            }
+
+            response = api_post("/users", payload)
+
+            if response and response.status_code in [200, 201]:
+                st.success("User created successfully.")
                 st.rerun()
-
-        with btn_col2:
-            if st.session_state.confirm_delete_task_id == task_id:
-                if st.button(
-                    "Cancel",
-                    key=f"cancel_delete_task_{task_id}",
-                    use_container_width=True,
-                ):
-                    st.session_state.confirm_delete_task_id = None
-                    st.rerun()
             else:
-                if st.button(
-                    "🗑️ Delete",
-                    key=f"delete_btn_{task_id}",
-                    use_container_width=True,
-                ):
-                    st.session_state.confirm_delete_task_id = task_id
-                    st.rerun()
-
-        if st.session_state.confirm_delete_task_id == task_id:
-            st.warning("Delete this task? This cannot be undone.")
-
-            yes_col, cancel_col = st.columns(2)
-
-            with yes_col:
-                if st.button(
-                    "Yes, delete task",
-                    key=f"confirm_delete_task_{task_id}",
-                    use_container_width=True,
-                ):
-                    delete_task(task_id)
-
-            with cancel_col:
-                if st.button(
-                    "Keep task",
-                    key=f"keep_task_{task_id}",
-                    use_container_width=True,
-                ):
-                    st.session_state.confirm_delete_task_id = None
-                    st.rerun()
-
-        render_comments(task)
-        render_files(task)
-
-        st.divider()
-
-        move_col1, move_col2 = st.columns(2)
-        status_index = STATUSES.index(status)
-
-        with move_col1:
-            if status_index > 0:
-                if st.button(
-                    "⬅️",
-                    key=f"left_{task_id}",
-                    use_container_width=True,
-                ):
-                    move_task(task_id, STATUSES[status_index - 1])
-
-        with move_col2:
-            if status_index < len(STATUSES) - 1:
-                if st.button(
-                    "➡️",
-                    key=f"right_{task_id}",
-                    use_container_width=True,
-                ):
-                    move_task(task_id, STATUSES[status_index + 1])
-
-
-def render_kanban():
-    st.subheader("Kanban Board")
-
-    params = build_task_filters()
-    tasks = get_tasks(params=params)
-
-    render_sidebar_edit_panel(tasks)
-
-    columns = st.columns(len(STATUSES))
-
-    for index, status in enumerate(STATUSES):
-        with columns[index]:
-            status_tasks = [
-                task for task in tasks
-                if task["status"] == status
-            ]
-
-            st.markdown(status_badge(status), unsafe_allow_html=True)
-            st.caption(f"{len(status_tasks)} task(s)")
-
-            for task in status_tasks:
-                render_task_card(task, status)
+                error = response.text if response else "No response from API"
+                st.error(f"Failed to create user: {error}")
 
 
 # =========================
 # AUDIT LOGS
 # =========================
-def render_audit_logs():
+def audit_logs_page():
     st.subheader("Audit Logs")
+
+    current_user = st.session_state.user or {}
+
+    if current_user.get("role") != "admin":
+        st.warning("Only admins can view audit logs.")
+        return
 
     logs = get_audit_logs()
 
     if not logs:
-        st.info("No audit logs yet.")
+        st.info("No audit logs found.")
         return
 
-    logs_df = pd.DataFrame(logs)
-    st.dataframe(logs_df, use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(logs), use_container_width=True)
 
 
 # =========================
 # MAIN APP
 # =========================
-if st.session_state.user is None:
-    login()
-
+if not st.session_state.logged_in:
+    login_page()
 else:
-    st.sidebar.success(
-        f"Logged in as {st.session_state.user['full_name']}"
-    )
-    st.sidebar.caption(f"Role: {st.session_state.user['role']}")
+    sidebar()
 
-    if st.sidebar.button("Logout"):
-        st.session_state.user = None
-        st.session_state.access_token = None
-        st.session_state.selected_task_id = None
-        st.session_state.confirm_delete_task_id = None
-        st.session_state.confirm_delete_comment_id = None
-        st.session_state.confirm_delete_file_id = None
-        st.rerun()
-
-    menu_options = [
-        "Dashboard",
-        "Kanban Board",
-        "Create Task",
-    ]
-
-    if st.session_state.user["role"] == "admin":
-        menu_options.append("User Management")
-        menu_options.append("Audit Logs")
-
-    menu = st.sidebar.radio("Menu", menu_options)
-
-    if menu == "Dashboard":
-        render_dashboard()
-
-    elif menu == "Create Task":
-        create_task()
-
-    elif menu == "Kanban Board":
-        render_kanban()
-
-    elif menu == "User Management":
-        render_user_management()
-
-    elif menu == "Audit Logs":
-        render_audit_logs()
+    if st.session_state.page == "Dashboard":
+        dashboard_page()
+    elif st.session_state.page == "Kanban Board":
+        kanban_page()
+    elif st.session_state.page == "Create Task":
+        create_task_page()
+    elif st.session_state.page == "User Management":
+        user_management_page()
+    elif st.session_state.page == "Audit Logs":
+        audit_logs_page()
