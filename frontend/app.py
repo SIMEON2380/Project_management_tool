@@ -18,11 +18,6 @@ st.set_page_config(page_title="Project Management Tool", layout="wide")
 st.markdown(
     """
     <style>
-    .stApp {
-        background-color: #f5f7fb !important;
-        color: #111827 !important;
-    }
-
     .block-container {
         padding-top: 2rem;
         padding-left: 2rem;
@@ -31,91 +26,10 @@ st.markdown(
         max-width: 95%;
     }
 
-    section[data-testid="stSidebar"] {
-        background-color: #ffffff !important;
-        border-right: 1px solid #e5e7eb;
-    }
-
-    section[data-testid="stSidebar"] * {
-        color: #111827 !important;
-    }
-
-    h1, h2, h3, h4, h5, h6, p, label, span {
-        color: #111827 !important;
-    }
-
     h1 {
         margin-top: 0rem;
         margin-bottom: 1rem;
         line-height: 1.2;
-    }
-
-    .stTextInput input,
-    .stTextArea textarea,
-    .stDateInput input {
-        background-color: #ffffff !important;
-        color: #111827 !important;
-        border: 1px solid #9ca3af !important;
-        border-radius: 0.5rem !important;
-    }
-
-    .stTextInput input::placeholder,
-    .stTextArea textarea::placeholder {
-        color: #6b7280 !important;
-    }
-
-    /* Fix selectbox dark fields */
-    div[data-baseweb="select"] > div {
-        background-color: #ffffff !important;
-        color: #111827 !important;
-        border: 1px solid #9ca3af !important;
-        border-radius: 0.5rem !important;
-    }
-
-    div[data-baseweb="select"] span,
-    div[data-baseweb="select"] div {
-        color: #111827 !important;
-    }
-
-    div[data-baseweb="select"] svg {
-        color: #111827 !important;
-        fill: #111827 !important;
-    }
-
-    ul[role="listbox"],
-    li[role="option"] {
-        background-color: #ffffff !important;
-        color: #111827 !important;
-    }
-
-    li[role="option"]:hover {
-        background-color: #e5e7eb !important;
-        color: #111827 !important;
-    }
-
-    div.stButton > button,
-    div[data-testid="stFormSubmitButton"] button {
-        background-color: #2563eb !important;
-        color: #ffffff !important;
-        padding: 0.35rem 0.8rem;
-        font-size: 14px;
-        min-height: 2.2rem;
-        border-radius: 0.5rem;
-        border: none !important;
-        opacity: 1 !important;
-    }
-
-    div.stButton > button:hover,
-    div[data-testid="stFormSubmitButton"] button:hover {
-        background-color: #1d4ed8 !important;
-        color: #ffffff !important;
-    }
-
-    div.stButton > button:disabled,
-    div[data-testid="stFormSubmitButton"] button:disabled {
-        background-color: #93c5fd !important;
-        color: #ffffff !important;
-        opacity: 1 !important;
     }
 
     hr {
@@ -124,12 +38,18 @@ st.markdown(
     }
 
     .task-card {
-        background-color: #ffffff;
-        border: 1px solid #e5e7eb;
+        border: 1px solid rgba(128, 128, 128, 0.35);
         border-radius: 0.75rem;
         padding: 1rem;
         margin-bottom: 0.75rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    div.stButton > button,
+    div[data-testid="stFormSubmitButton"] button {
+        padding: 0.35rem 0.8rem;
+        font-size: 14px;
+        min-height: 2.2rem;
+        border-radius: 0.5rem;
     }
     </style>
     """,
