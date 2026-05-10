@@ -44,6 +44,30 @@ st.markdown(
         margin-bottom: 0.75rem;
     }
 
+    .dashboard-card {
+        border: 1px solid rgba(128, 128, 128, 0.25);
+        border-radius: 0.9rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .dashboard-card-title {
+        font-size: 0.85rem;
+        opacity: 0.75;
+        margin-bottom: 0.25rem;
+    }
+
+    .dashboard-card-value {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+
+    .dashboard-section {
+        margin-top: 1.2rem;
+        margin-bottom: 0.6rem;
+    }
+
     div.stButton > button,
     div[data-testid="stFormSubmitButton"] button {
         padding: 0.35rem 0.8rem;
@@ -205,6 +229,18 @@ def sidebar():
         st.session_state.page = page
 
 
+def dashboard_card(title, value):
+    st.markdown(
+        f"""
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">{escape(str(title))}</div>
+            <div class="dashboard-card-value">{escape(str(value))}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def dashboard_page():
     st.subheader("Dashboard")
 
@@ -216,15 +252,101 @@ def dashboard_page():
 
     df = pd.DataFrame(tasks)
 
-    col1, col2, col3, col4 = st.columns(4)
+    if "status" not in df.columns:
+        df["status"] = ""
 
-    col1.metric("Total Tasks", len(df))
-    col2.metric("Not Started", len(df[df["status"] == "Not Started"]) if "status" in df else 0)
-    col3.metric("In Progress", len(df[df["status"] == "In Progress"]) if "status" in df else 0)
-    col4.metric("Completed", len(df[df["status"] == "Completed"]) if "status" in df else 0)
+    if "priority" not in df.columns:
+        df["priority"] = ""
 
-    st.divider()
-    st.dataframe(df, use_container_width=True)
+    if "due_date" not in df.columns:
+        df["due_date"] = ""
+
+    total_tasks = len(df)
+    not_started = len(df[df["status"] == "Not Started"])
+    in_progress = len(df[df["status"] == "In Progress"])
+    blocked = len(df[df["status"] == "Blocked"])
+    completed = len(df[df["status"] == "Completed"])
+    urgent = len(df[df["priority"] == "Urgent"])
+
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+    with col1:
+        dashboard_card("Total Tasks", total_tasks)
+
+    with col2:
+        dashboard_card("Not Started", not_started)
+
+    with col3:
+        dashboard_card("In Progress", in_progress)
+
+    with col4:
+        dashboard_card("Blocked", blocked)
+
+    with col5:
+        dashboard_card("Completed", completed)
+
+    with col6:
+        dashboard_card("Urgent", urgent)
+
+    st.markdown('<div class="dashboard-section"></div>', unsafe_allow_html=True)
+
+    col_left, col_right = st.columns([2, 1])
+
+    with col_left:
+        st.subheader("Task List")
+
+    with col_right:
+        status_filter = st.selectbox(
+            "Filter by status",
+            ["All"] + STATUSES,
+            key="dashboard_status_filter",
+        )
+
+    filtered_df = df.copy()
+
+    if status_filter != "All":
+        filtered_df = filtered_df[filtered_df["status"] == status_filter]
+
+    preferred_columns = [
+        "id",
+        "title",
+        "description",
+        "status",
+        "priority",
+        "due_date",
+        "assigned_to_name",
+        "created_by_name",
+        "created_at",
+        "updated_at",
+    ]
+
+    visible_columns = [col for col in preferred_columns if col in filtered_df.columns]
+
+    if visible_columns:
+        table_df = filtered_df[visible_columns].copy()
+    else:
+        table_df = filtered_df.copy()
+
+    rename_map = {
+        "id": "ID",
+        "title": "Title",
+        "description": "Description",
+        "status": "Status",
+        "priority": "Priority",
+        "due_date": "Due Date",
+        "assigned_to_name": "Assigned To",
+        "created_by_name": "Created By",
+        "created_at": "Created At",
+        "updated_at": "Updated At",
+    }
+
+    table_df = table_df.rename(columns=rename_map)
+
+    st.dataframe(
+        table_df,
+        use_container_width=True,
+        hide_index=True,
+    )
 
 
 def create_task_page():
