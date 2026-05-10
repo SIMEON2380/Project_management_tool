@@ -37,13 +37,6 @@ st.markdown(
         margin-bottom: 0.45rem !important;
     }
 
-    .kanban-card {
-        border: 1px solid rgba(128, 128, 128, 0.35);
-        border-radius: 0.75rem;
-        padding: 0.85rem;
-        margin-bottom: 0.75rem;
-    }
-
     .status-pill {
         display: inline-block;
         padding: 0.2rem 0.55rem;
@@ -491,6 +484,15 @@ def delete_task(task_id):
     st.error(f"Failed to delete task: {error}")
 
 
+def safe_due_date(value):
+    try:
+        if value:
+            return pd.to_datetime(value).date()
+    except Exception:
+        pass
+    return date.today()
+
+
 def kanban_page():
     st.subheader("Kanban Board")
 
@@ -535,146 +537,144 @@ def kanban_page():
     for index, status in enumerate(STATUSES):
         with cols[index]:
             pill_class = get_status_pill_class(status)
-            count = len([task for task in filtered_tasks if task.get("status") == status])
+            status_tasks = [task for task in filtered_tasks if task.get("status") == status]
 
             st.markdown(
                 f"""
                 <span class="status-pill {pill_class}">{escape(status)}</span>
-                <div>{count} task(s)</div>
+                <div>{len(status_tasks)} task(s)</div>
                 """,
                 unsafe_allow_html=True,
             )
-
-            status_tasks = [task for task in filtered_tasks if task.get("status") == status]
 
             if not status_tasks:
                 st.caption("No tasks")
 
             for task in status_tasks:
                 task_id = task.get("id")
-                title = escape(str(task.get("title", "")))
-                description = escape(str(task.get("description", "")))
-                priority = escape(str(task.get("priority", "")))
-                due_date = escape(str(task.get("due_date", "")))
-                assigned_name = escape(str(task.get("assigned_to_name", "Unassigned")))
-
+                priority = str(task.get("priority", "Low"))
                 priority_class = get_priority_class(priority)
 
-                st.markdown(
-                    f"""
-                    <div class="kanban-card">
-                        <strong>{title}</strong><br>
-                        <small>{description}</small><br>
-                        <small>👤 {assigned_name}</small><br>
-                        <span class="priority-badge {priority_class}">⚡ {priority}</span><br>
-                        <small>📅 {due_date}</small>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                with st.container(border=True):
+                    st.markdown(f"**{task.get('title', '')}**")
 
-                col_edit, col_delete = st.columns(2)
+                    if task.get("description"):
+                        st.caption(str(task.get("description", "")))
 
-                with col_edit:
-                    with st.expander("✏️ Edit"):
-                        new_title = st.text_input(
-                            "Title",
-                            value=str(task.get("title", "")),
-                            key=f"edit_title_{task_id}",
-                        )
+                    st.caption(f"👤 {task.get('assigned_to_name', 'Unassigned')}")
 
-                        new_description = st.text_area(
-                            "Description",
-                            value=str(task.get("description", "")),
-                            key=f"edit_description_{task_id}",
-                        )
-
-                        new_priority = st.selectbox(
-                            "Priority",
-                            PRIORITIES,
-                            index=PRIORITIES.index(task.get("priority"))
-                            if task.get("priority") in PRIORITIES
-                            else 0,
-                            key=f"edit_priority_{task_id}",
-                        )
-
-                        new_due_date = st.date_input(
-                            "Due Date",
-                            value=pd.to_datetime(task.get("due_date")).date()
-                            if task.get("due_date")
-                            else date.today(),
-                            key=f"edit_due_date_{task_id}",
-                        )
-
-                        if st.button("Save", key=f"save_edit_{task_id}"):
-                            payload = {
-                                "title": new_title,
-                                "description": new_description,
-                                "status": task.get("status"),
-                                "priority": new_priority,
-                                "due_date": new_due_date.strftime("%Y-%m-%d"),
-                                "assigned_to_id": task.get("assigned_to_id"),
-                            }
-
-                            response = api_put(f"/tasks/{task_id}", payload)
-
-                            if response and response.status_code == 200:
-                                st.success("Task updated.")
-                                st.rerun()
-
-                            error = response.text if response else "No response from API"
-                            st.error(f"Failed to update task: {error}")
-
-                with col_delete:
-                    with st.expander("🗑️ Delete"):
-                        st.warning("This will delete the task.")
-                        confirm = st.checkbox("Confirm delete", key=f"confirm_delete_{task_id}")
-                        if st.button("Delete", key=f"delete_{task_id}", disabled=not confirm):
-                            delete_task(task_id)
-
-                with st.expander("💬 Comments"):
-                    comment_text = st.text_area(
-                        "Add comment",
-                        key=f"comment_text_{task_id}",
-                        placeholder="Write a comment...",
+                    st.markdown(
+                        f"""
+                        <span class="priority-badge {priority_class}">
+                            ⚡ {escape(priority)}
+                        </span>
+                        """,
+                        unsafe_allow_html=True,
                     )
 
-                    if st.button("Add Comment", key=f"add_comment_{task_id}"):
-                        if not comment_text.strip():
-                            st.warning("Comment cannot be empty.")
-                        else:
-                            response = api_post(
-                                "/comments",
-                                {
-                                    "task_id": task_id,
-                                    "comment": comment_text.strip(),
-                                },
+                    st.caption(f"📅 {task.get('due_date', '')}")
+
+                    col_edit, col_delete = st.columns(2)
+
+                    with col_edit:
+                        with st.expander("✏️ Edit"):
+                            new_title = st.text_input(
+                                "Title",
+                                value=str(task.get("title", "")),
+                                key=f"edit_title_{task_id}",
                             )
 
-                            if response and response.status_code in [200, 201]:
-                                st.success("Comment added.")
-                                st.rerun()
+                            new_description = st.text_area(
+                                "Description",
+                                value=str(task.get("description", "")),
+                                key=f"edit_description_{task_id}",
+                            )
+
+                            new_priority = st.selectbox(
+                                "Priority",
+                                PRIORITIES,
+                                index=PRIORITIES.index(task.get("priority"))
+                                if task.get("priority") in PRIORITIES
+                                else 0,
+                                key=f"edit_priority_{task_id}",
+                            )
+
+                            new_due_date = st.date_input(
+                                "Due Date",
+                                value=safe_due_date(task.get("due_date")),
+                                key=f"edit_due_date_{task_id}",
+                            )
+
+                            if st.button("Save", key=f"save_edit_{task_id}"):
+                                payload = {
+                                    "title": new_title,
+                                    "description": new_description,
+                                    "status": task.get("status"),
+                                    "priority": new_priority,
+                                    "due_date": new_due_date.strftime("%Y-%m-%d"),
+                                    "assigned_to_id": task.get("assigned_to_id"),
+                                }
+
+                                response = api_put(f"/tasks/{task_id}", payload)
+
+                                if response and response.status_code == 200:
+                                    st.success("Task updated.")
+                                    st.rerun()
+
+                                error = response.text if response else "No response from API"
+                                st.error(f"Failed to update task: {error}")
+
+                    with col_delete:
+                        with st.expander("🗑️ Delete"):
+                            st.warning("This will delete the task.")
+                            confirm = st.checkbox("Confirm delete", key=f"confirm_delete_{task_id}")
+
+                            if st.button("Delete", key=f"delete_{task_id}", disabled=not confirm):
+                                delete_task(task_id)
+
+                    with st.expander("💬 Comments"):
+                        comment_text = st.text_area(
+                            "Add comment",
+                            key=f"comment_text_{task_id}",
+                            placeholder="Write a comment...",
+                        )
+
+                        if st.button("Add Comment", key=f"add_comment_{task_id}"):
+                            if not comment_text.strip():
+                                st.warning("Comment cannot be empty.")
                             else:
-                                st.info("Comment endpoint may not be enabled yet.")
+                                response = api_post(
+                                    "/comments",
+                                    {
+                                        "task_id": task_id,
+                                        "comment": comment_text.strip(),
+                                    },
+                                )
 
-                with st.expander("📎 Files"):
-                    st.caption("File upload section placeholder. Backend upload support can be connected next.")
+                                if response and response.status_code in [200, 201]:
+                                    st.success("Comment added.")
+                                    st.rerun()
+                                else:
+                                    st.info("Comment endpoint may not be enabled yet.")
 
-                current_index = STATUSES.index(status)
-                left_status = STATUSES[current_index - 1] if current_index > 0 else None
-                right_status = STATUSES[current_index + 1] if current_index < len(STATUSES) - 1 else None
+                    with st.expander("📎 Files"):
+                        st.caption("File upload section placeholder. Backend upload support can be connected next.")
 
-                left_col, right_col = st.columns(2)
+                    current_index = STATUSES.index(status)
+                    left_status = STATUSES[current_index - 1] if current_index > 0 else None
+                    right_status = STATUSES[current_index + 1] if current_index < len(STATUSES) - 1 else None
 
-                with left_col:
-                    if left_status:
-                        if st.button("⬅️", key=f"left_{task_id}"):
-                            move_task(task_id, left_status)
+                    left_col, right_col = st.columns(2)
 
-                with right_col:
-                    if right_status:
-                        if st.button("➡️", key=f"right_{task_id}"):
-                            move_task(task_id, right_status)
+                    with left_col:
+                        if left_status:
+                            if st.button("⬅️ Move Left", key=f"left_{task_id}"):
+                                move_task(task_id, left_status)
+
+                    with right_col:
+                        if right_status:
+                            if st.button("Move Right ➡️", key=f"right_{task_id}"):
+                                move_task(task_id, right_status)
 
 
 def user_management_page():
