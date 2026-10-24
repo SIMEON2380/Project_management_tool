@@ -11,10 +11,11 @@ from .auth import (
     get_current_user,
     require_admin,
 )
-from .db import Base, engine, get_db
+from .db import Base, engine, ensure_task_completion_tracking, get_db
 
 
 Base.metadata.create_all(bind=engine)
+ensure_task_completion_tracking()
 
 app = FastAPI(title="Project Management API")
 
@@ -179,6 +180,7 @@ def list_tasks(
     priority: str | None = None,
     assigned_to_id: int | None = None,
     search: str | None = None,
+    include_archived_completed: bool = True,
     db: Session = Depends(get_db),
 ):
     tasks = services.get_tasks(
@@ -187,6 +189,7 @@ def list_tasks(
         priority=priority,
         assigned_to_id=assigned_to_id,
         search=search,
+        include_archived_completed=include_archived_completed,
     )
 
     return [task_response(task, db) for task in tasks]
@@ -463,4 +466,5 @@ def task_response(task, db: Session):
         "created_by_name": created_by_name,
         "created_at": str(task.created_at),
         "updated_at": str(task.updated_at) if task.updated_at else None,
+        "completed_at": str(task.completed_at) if task.completed_at else None,
     }
