@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 
@@ -17,6 +17,28 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
+
+
+def ensure_task_completion_tracking():
+    with engine.begin() as connection:
+        columns = {
+            column["name"]
+            for column in inspect(connection).get_columns("tasks")
+        }
+
+        if "completed_at" not in columns:
+            connection.execute(
+                text("ALTER TABLE tasks ADD COLUMN completed_at DATETIME")
+            )
+
+        # Backfill existing completed tasks using the best available date.
+        connection.execute(
+            text(
+                "UPDATE tasks "
+                "SET completed_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) "
+                "WHERE status = 'Completed' AND completed_at IS NULL"
+            )
+        )
 
 
 def get_db():

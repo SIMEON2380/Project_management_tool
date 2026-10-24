@@ -1,8 +1,13 @@
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from . import models
 from .auth import hash_password, verify_password
+
+
+COMPLETED_TASK_RETENTION_DAYS = 7
 
 
 # =========================
@@ -139,6 +144,7 @@ def create_task(
         due_date=due_date,
         assigned_to_id=assigned_to_id,
         created_by_id=created_by_id,
+        completed_at=func.now() if status == "Completed" else None,
     )
 
     db.add(task)
@@ -161,6 +167,7 @@ def get_tasks(
     priority: str | None = None,
     assigned_to_id: int | None = None,
     search: str | None = None,
+    include_archived_completed: bool = True,
 ):
     query = db.query(models.Task)
 
@@ -178,6 +185,22 @@ def get_tasks(
             or_(
                 models.Task.title.ilike(f"%{search}%"),
                 models.Task.description.ilike(f"%{search}%"),
+            )
+        )
+
+    if not include_archived_completed:
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+            days=COMPLETED_TASK_RETENTION_DAYS
+        )
+        completion_time = func.coalesce(
+            models.Task.completed_at,
+            models.Task.updated_at,
+            models.Task.created_at,
+        )
+        query = query.filter(
+            or_(
+                models.Task.status != "Completed",
+                completion_time >= cutoff,
             )
         )
 
@@ -210,6 +233,12 @@ def update_task_status(
     task.status = status
     task.updated_at = func.now()
 
+    if status == "Completed":
+        if old_status != "Completed" or task.completed_at is None:
+            task.completed_at = func.now()
+    else:
+        task.completed_at = None
+
     db.commit()
     db.refresh(task)
 
@@ -238,6 +267,12 @@ def update_task(
 
     if not task:
         return None
+
+    if status == "Completed":
+        if task.status != "Completed" or task.completed_at is None:
+            task.completed_at = func.now()
+    else:
+        task.completed_at = None
 
     task.title = title
     task.description = description
