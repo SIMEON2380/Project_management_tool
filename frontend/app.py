@@ -212,8 +212,12 @@ def get_users():
     return []
 
 
-def get_tasks():
-    response = api_get("/tasks")
+def get_tasks(include_archived_completed=True):
+    path = "/tasks"
+    if not include_archived_completed:
+        path += "?include_archived_completed=false"
+
+    response = api_get(path)
     if response and response.status_code == 200:
         return response.json()
     return []
@@ -482,51 +486,32 @@ def safe_due_date(value):
     return date.today()
 
 
-def completed_task_is_archived(task, cutoff):
-    if str(task.get("status", "")).strip().lower() != "completed":
-        return False
-
-    # Prefer a dedicated completion timestamp when the API provides one.
-    # Older API versions can fall back to the last update or creation date.
-    for value in (task.get("completed_at"), task.get("updated_at"), task.get("created_at")):
-        if not value:
-            continue
-
-        completed_at = pd.to_datetime(value, utc=True, errors="coerce")
-        if pd.notna(completed_at):
-            return completed_at < cutoff
-
-    return False
-
-
 def kanban_page():
     st.subheader("Kanban Board")
     st.caption(
-        "Completed tasks older than 7 days are hidden here. Use Search and Filters to show them when needed; they remain saved."
+        "Completed tasks older than 7 days are hidden here. Show them in Search and Filters when needed; they remain saved."
     )
-
-    tasks = get_tasks()
 
     with st.expander("🔎 Search and Filters"):
         search = st.text_input("Search tasks", placeholder="Search title or description")
         priority_filter = st.selectbox("Priority", ["All"] + PRIORITIES)
         assigned_filter = st.text_input("Assigned person contains", placeholder="Example: Simeon")
-        show_older_completed = st.checkbox(
+        show_archived_completed = st.checkbox(
             "Show completed tasks older than 7 days",
             help="Older completed tasks stay saved and can be shown here whenever you need them.",
         )
 
+    tasks = get_tasks(include_archived_completed=show_archived_completed)
+
     if not tasks:
-        st.info("No tasks found.")
+        if show_archived_completed:
+            st.info("No tasks found.")
+        else:
+            st.info("No current tasks found. Turn on the archive option above to include older completed tasks.")
         return
 
     filtered_tasks = []
-    archive_cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=7)
-
     for task in tasks:
-        if not show_older_completed and completed_task_is_archived(task, archive_cutoff):
-            continue
-
         title = str(task.get("title", ""))
         description = str(task.get("description", ""))
         priority = str(task.get("priority", ""))
@@ -590,15 +575,6 @@ def kanban_page():
                     )
 
                     st.caption(f"📅 {task.get('due_date', '')}")
-
-                    if status == "Completed":
-                        completion_date = (
-                            task.get("completed_at")
-                            or task.get("updated_at")
-                            or task.get("created_at")
-                        )
-                        if completion_date:
-                            st.caption(f"✅ Completed {str(completion_date)[:10]}")
 
                     col_edit, col_delete = st.columns(2)
 
@@ -806,7 +782,7 @@ def audit_logs_page():
         st.info("No audit logs found.")
         return
 
-    st.dataframe(pd.DataFrame(logs), use_container_width=True)
+    st.dataframe(pd.DataFrame(logs), use_container_width=True, hide_index=True)
 
 
 if not st.session_state.logged_in:

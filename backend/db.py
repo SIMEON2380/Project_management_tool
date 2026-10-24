@@ -21,17 +21,14 @@ Base = declarative_base()
 
 def ensure_task_completion_tracking():
     with engine.begin() as connection:
-        columns = {
-            column["name"]
-            for column in inspect(connection).get_columns("tasks")
-        }
+        columns = {column["name"] for column in inspect(connection).get_columns("tasks")}
 
         if "completed_at" not in columns:
-            connection.execute(
-                text("ALTER TABLE tasks ADD COLUMN completed_at DATETIME")
-            )
+            connection.execute(text("ALTER TABLE tasks ADD COLUMN completed_at DATETIME"))
 
-        # Backfill existing completed tasks using the best available date.
+        # Existing completed tasks use their last known update time as the best
+        # available completion date. This keeps their history while allowing
+        # the board to hide older items.
         connection.execute(
             text(
                 "UPDATE tasks "

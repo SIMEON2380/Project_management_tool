@@ -7,9 +7,6 @@ from . import models
 from .auth import hash_password, verify_password
 
 
-COMPLETED_TASK_RETENTION_DAYS = 7
-
-
 # =========================
 # AUDIT LOGS
 # =========================
@@ -189,18 +186,12 @@ def get_tasks(
         )
 
     if not include_archived_completed:
-        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
-            days=COMPLETED_TASK_RETENTION_DAYS
-        )
-        completion_time = func.coalesce(
-            models.Task.completed_at,
-            models.Task.updated_at,
-            models.Task.created_at,
-        )
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
         query = query.filter(
             or_(
                 models.Task.status != "Completed",
-                completion_time >= cutoff,
+                models.Task.completed_at.is_(None),
+                models.Task.completed_at >= cutoff,
             )
         )
 
